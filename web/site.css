@@ -1,0 +1,13 @@
+.indent {
+  padding-left: 15px;  
+}
+
+.javasource {
+  font-family: monospace
+  font-size: 15px;    
+}
+
+.keyword {
+  color: #7F0055;
+  font-weight: bold;  
+}

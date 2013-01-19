@@ -7,20 +7,20 @@
     <link rel="stylesheet" href="site.css">
   </head>
   <body>
-    <h1>site</h1>
-    
-    <p>Hello world from Dart!</p>
-    
+    <h1>JavaEvaluator</h1>
     <div id="container">
       <form>
+        <input id="example" type="button" value="Use example file"/>
         <input id="file" type="file"/>
         <input id="bruk" type="button" value="Bruk"/>
+        <input id="step" type="button" value="Step"/>
       </form>
-      <canvas id="canvas" width="600" height="600" class="center"></canvas>
       <br/>
     </div>
+    <div id="tekst"></div>
+    <div id="environment"></div>
     
     <script type="application/dart" src="site.dart"></script>
-    <script src="https://dart.googlecode.com/svn/branches/bleeding_edge/dart/client/dart.js"></script>
+    <script src="packages/browser/dart.js"></script>
   </body>
 </html>
