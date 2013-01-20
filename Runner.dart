@@ -4,7 +4,8 @@ class Runner {
 //  List<Map<Identifier, dynamic>> environment = new List<Map<Identifier, dynamic>>();
   Environment environment = new Environment();
   Program program;
-  List<List<ASTNode>> programstack = [];
+  List<List<dynamic>> programstack = [];
+  List<dynamic> returnValues = [];
   
   Runner(this.program) {
     programstack.add([new MethodCall.main(["streng argument til main"])]);
@@ -27,7 +28,9 @@ class Runner {
   }
     
   void step(){
-    _eval(_popStatement());
+    var result = _eval(_popStatement());
+    if(result is EvalTree)
+      programstack[programstack.length-2].insertRange(0, 1, result);
   }
   
   bool isDone(){
@@ -37,7 +40,7 @@ class Runner {
     return programstack.every((s) => s.isEmpty);
   }
   
-  ASTNode _popStatement(){
+  dynamic _popStatement(){
     //execution complete
     if(programstack.isEmpty)
       return null;
@@ -60,15 +63,17 @@ class Runner {
     environment.popScope();
   }
   
-  _eval(statement){
-    if(statement is MethodDecl)
-      _evalMethod(statement);
+  dynamic _eval(statement){
+    if(statement is EvalTree)
+      return statement.execute();
+    else if(statement is MethodDecl)
+      return _evalMethod(statement);
     else if(statement is Variable)
-      _evalVariable(statement);
+      return _evalVariable(statement);
     else if(statement is MethodCall)
-      _evalMethodCall(statement);
+      return _evalMethodCall(statement);
     else if(statement is Assignment)
-      _evalAssignment(statement);
+      return _evalAssignment(statement);
     else if(statement is int)
       return statement;
     else if(statement is If)
@@ -85,6 +90,7 @@ class Runner {
   }
 
   _evalMethodCall(MethodCall call) {
+    //TODO arguments may contain methodcall, fix to support this.
     List<dynamic> args = call.arguments.map(_eval); 
     
     if(call.select is MemberSelect){
@@ -105,6 +111,9 @@ class Runner {
         Variable v = method.parameters[i];
         environment.newVariable(new Identifier(v.name), args[i]);
       }
+      
+      returnValues.addLast(new EvalTree());
+      return returnValues.last;
     }
     else throw "Currently only support member select method calls";   
   }
@@ -131,7 +140,6 @@ class Runner {
     return true;
   }
   
-  
   _evalMethod(MethodDecl method){
     for(dynamic statement in method.body){
       _eval(statement);
@@ -140,7 +148,7 @@ class Runner {
   
   _evalBinaryOp(BinaryOp binary) {
     switch(binary.type){
-      case BinaryOp.EQUAL:      
+      case BinaryOp.EQUAL:
         return _eval(binary.left) == _eval(binary.right);
       default:
         throw "Binary operator not supported yet: ${binary.type}";
@@ -155,8 +163,14 @@ class Runner {
       _newScope(ifStat.elze);      
     }
   }
+  
   _evalAssignment(Assignment assign) {
-    environment.assign(assign.id, _eval(assign.expr));
+    var expr = _eval(assign.expr);
+    if(expr is EvalTree){
+      return new EvalTree((arg1){environment.assign(assign.id, arg1);}, expr);
+    }
+
+    environment.assign(assign.id, expr);
   }
 
   _evalVariable(Variable variable) {
@@ -170,7 +184,34 @@ class Runner {
   _evalReturn(Return ret){
     var toReturn = _eval(ret.expr);
     _popScope();
-    print("return $toReturn");
-    return toReturn;
+    returnValues.removeLast().method = () => toReturn;    
+  }
+
+}
+
+class EvalTree {
+  final arg1;
+  final arg2;
+  var method;
+  
+  EvalTree([this.method, this.arg1, this.arg2]);
+  
+  execute(){
+    if(arg1 != null){
+      var arg1Evaled = arg1;
+      if(arg1 is EvalTree)
+        arg1Evaled = arg1.execute();
+      
+      if(arg2 != null){
+        var arg2Evaled = arg2;
+        if(arg2 is EvalTree)
+          arg2Evaled = arg2.execute();
+        return method(arg1Evaled, arg2Evaled);
+      }
+      else {
+        return method(arg1Evaled);
+      }
+    }
+    return method();
   }
 }
