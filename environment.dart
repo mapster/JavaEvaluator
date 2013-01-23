@@ -2,34 +2,41 @@ part of JavaEvaluator;
 
 class Environment {
   int _counter = 0;
-  final Map<int, dynamic> values = new Map<int, dynamic>();
-  final List<Map<Identifier, int>> assignments = [new Map<Identifier, int>()];
+  final Map<Address, dynamic> values = new Map<Address, dynamic>();
+  final List<Map<Identifier, dynamic>> assignments = [new Map<Identifier, dynamic>()];
   
   void popScope(){ assignments.removeLast(); }
-  void addScope(){ assignments.addLast(new Map<Identifier, int>()); }
+  void addScope(){ assignments.addLast(new Map<Identifier, dynamic>()); }
   
   void newVariable(Identifier name, [dynamic value]){
-    if(?value)
-      assignments.last[name] = _getAddress(value);
-    else
-      assignments.last[name] = -1;
-    print("declaring: $name at [${assignments.last[name]}] with value $value of type ${value.runtimeType}");
+    assignments.last[name] = Address.invalid;
+    
+    if(?value){
+      if(value is ClassEnv)
+        value = _newValue(value);
+      assign(name, value);
+    }
+
+    print("declaring: $name ${assignments.last[name] is Address ? " at [${assignments.last[name]}]" : ""} with value $value of type ${value.runtimeType}");
   }
   
   void assign(Identifier name, dynamic value){
-    Map<Identifier, int> scope = _findScope(name);
+    Map<Identifier, dynamic> scope = _findScope(name);
     if(scope != null){
-      scope[name] = _getAddress(value);
-      return;
+      if(value is Identifier)
+        scope[name] = _lookUpAddress(value);
+      else
+        scope[name] = value;
     }
-    throw "Variable [${name.name}] does not exist!";
+    else throw "Variable [${name.name}] is not declared!";
   }
 
   /**
    * Initializes a class instance, i.e. stores all fields with an initial value in memory and returns the class environment.
    */
+  //TODO potential mess with primitive values
   ClassEnv newClassInstance(ClassDecl clazz, Map<String, Identifier> initialValues, [bool static = false]){
-    Map<String, int> addr = new Map<String, int>();
+    Map<String, dynamic> addr = new Map<String, dynamic>();
     for(String key in initialValues.keys){
       addr[key] = _lookUpAddress(initialValues[key]);
     }
@@ -38,45 +45,47 @@ class Environment {
   
   dynamic lookUp(variable){
     if(variable is Identifier){
-      Map<Identifier, int> scope = _findScope(variable);
+      Map<Identifier, dynamic> scope = _findScope(variable);
       if(scope != null){
-        return values[scope[variable]];
+        if(scope[variable] is Address)
+          return values[scope[variable]];
+        else 
+          return scope[variable];
       }
       
       throw "Variable [${variable.name}] not declared.";
     }
     else if(variable is MemberSelect){
-      return values[lookUp(variable.owner).lookUpAdress(variable.member_id)];
+      var owner = lookUp(variable.owner);
+      if(owner is! ClassEnv)
+        throw "Can't select member of a primitive value.";
+      
+      var member = owner.lookUp(variable.member_id);
+      if(member is Address)
+        return values[member]; 
+      else
+        return member;
     }
     else throw "Can't lookup value by using ${variable}";    
   }
   
-  /**
-   * Will return the address of value if it is an Identifier, or allocate it in memory and return the address.
-   */
-  int _getAddress(dynamic value){
-    if(value is Identifier)
-      return _lookUpAddress(value);
-    else
-      return _newValue(value);
+  Address _newValue(dynamic value){
+    Address addr = new Address(++_counter);
+    values[addr] = value;
+    return addr;
   }
   
-  int _newValue(dynamic value){
-    values[++ _counter] = value;
-    return _counter;
-  }
-  
-  int _lookUpAddress(Identifier name){
-    Map<Identifier, int> scope = _findScope(name);
+  Address _lookUpAddress(Identifier name){
+    Map<Identifier, dynamic> scope = _findScope(name);
     if(scope != null)
       return scope[name];
     
-    throw "Variable [${name.name}] not currently assigned!";
+    throw "Variable [${name.name}] is not declared!";
   }
   
-  Map<Identifier, int> _findScope(Identifier name){
+  Map<Identifier, dynamic> _findScope(Identifier name){
     for(int i = assignments.length-1; i >= 0; i--){
-      Map<Identifier, int> scope = assignments[i];
+      Map<Identifier, dynamic> scope = assignments[i];
       if(scope.containsKey(name))
         return scope;
     }
@@ -84,12 +93,19 @@ class Environment {
   }
 }
 
+class Address {
+  final int addr;
+  const Address(this.addr);
+  static const invalid = const Address(-1);
+  String toString() => "[$addr]";
+}
+
 class ClassEnv {
   final ClassDecl decl;
-  final Map<String, int> _variables = new Map<String, int>();
+  final Map<String, dynamic> _variables = new Map<String, dynamic>();
   final bool _static;
   
-  ClassEnv(this.decl, Map<String, int> initialValues, [this._static = false]){
+  ClassEnv(this.decl, Map<String, dynamic> initialValues, [this._static = false]){
     initialValues.keys.forEach((name){
       if((_static && decl.staticVariables.containsKey(name)) || !_static && decl.instanceVariables.containsKey(name))
         _variables[name] = initialValues[name];
@@ -100,7 +116,10 @@ class ClassEnv {
   
   List<MethodDecl> getMethods() => (_static ? decl.staticMethods : decl.instanceMethods);
   
-  int lookUpAdress(String name){
+  /**
+   * Returns address or primitive value of named variable. 
+   */
+  dynamic lookUp(String name){
     return _variables[name];
   }
 }
