@@ -16,20 +16,17 @@ class Printer {
     return div;
   }
 
-  static SpanElement _createSpan(String clazz){
+  static SpanElement _span([String clazz, String text = ""]){
     SpanElement sp = new SpanElement();
     sp.attributes['class'] = clazz;
+    sp.text = text;
     return sp;
   }
   
-  static SpanElement _keyword(String keyword){
-    SpanElement span = _createSpan("keyword");
-    span.text = keyword;
-    return span;
-  }
+  static SpanElement _keyword(String keyword) => _span("keyword", keyword);
   
   static SpanElement _code(String code){
-    SpanElement sp = _createSpan("code");
+    SpanElement sp = _span("code");
     sp.text = code;
     return sp;
   }
@@ -47,6 +44,7 @@ class Printer {
       ClassDecl node = astNode;
       
       DivElement div = _createLineDiv();
+      div.children.addAll(node.modifiers.map((e) => "$e ").map(_keyword));
       div.children.add(_keyword("class"));
       div.children.add(_code(" ${node.name} {"));
       root.children.add(div);
@@ -60,11 +58,12 @@ class Printer {
       MethodDecl node = astNode;
       
       DivElement div = _createLineDiv();
-      if(node.type.returnType.isPrimitive())
-        div.children.add(_keyword("${node.type.returnType}"));
-      else
-        div.children.add(_code("${node.type.returnType}"));
-      div.children.add(_code(" ${node.name}(${node.parameters.reduce("", reduceList)}){"));
+      div.children.addAll(node.modifiers.map((e) => "$e ").map(_keyword));
+      div.children.addAll(_toElements(node.type.returnType));
+      
+      div.children.addAll([_span("id", " ${node.name}"), _span("", "(")]);
+      div.children.addAll(node.parameters.map(_toElements).reduce(new List<Element>(), _addSeparators));
+      div.children.add(_span("", ") {"));
       root.children.add(div);
       
       DivElement body = _createIndentDiv();
@@ -79,34 +78,98 @@ class Printer {
     else if(astNode is If){
       If node = astNode;
       DivElement div = _createLineDiv();
-      div.text = "if(${node.condition}){";
+      div.children.addAll([_keyword("if"), _span("", "(")]);
+      div.children.addAll(_toElements(node.condition));
+      div.children.add(_span("", "){"));
       root.children.add(div);
       
-      //add then block
+      //add the then-block
       DivElement then = _createIndentDiv();
       node.then.map((e) => _toHtml(e, then));
       root.children.addAll([then, _createLineDiv("}")]);
       
-      //add else block
+      //add the else-block
       if(node.elze != null){
-        root.children.add(_createLineDiv("else {"));
+        DivElement div = _createLineDiv();
+        div.children.addAll([_keyword("else"), _span("", "{")]);
+        root.children.add(div);
+        
         DivElement elze = _createIndentDiv();
         node.elze.map((e) => _toHtml(e, elze));
         root.children.addAll([elze, _createLineDiv("}")]);
       }
       
     }
+//    else if(astNode is Assignment){
+//      Assignment assign = astNode;
+//      DivElement div = _createLineDiv();
+//      div.children = "${_toElements(assign.id)} = ${_toElements(assign.expr)};";
+//      root.children.add(div);
+//    }
     else {
       DivElement div = _createLineDiv();
-      div.text = "$astNode;";
+      div.children = _toElements(astNode);
+      div.children.add(_span("", ";"));
       root.children.add(div);
     }
+  }
+
+  static List<Element> _toElements(dynamic node) {
+    List<Element> els;
+    if(node is Assignment){
+      els = _toElements(node.id);
+      els.add(_span("op", " = "));
+      els.addAll(_toElements(node.expr));
+    }
+    else if(node is Identifier)
+      els = [_span("id", node.name)];
+    else if(node is MethodCall){
+      MethodCall call = node;
+      els = [_span("call", "${call.select}"), _span("", "(")];
+      els.addAll(call.arguments.map(_toElements).reduce(new List<Element>(), _addSeparators));
+      els.add(_span("", ")"));
+    }
+    else if(node is Type){
+      print("$node");
+      els = [_span("type${node.isPrimitive ? " keyword" : ""}", "$node")]; 
+    }
+    else if(node is Variable){
+      els = _toElements(node.type);
+      els.add(_span("id", " ${node.name}"));
+      if(node.initializer != null){
+        els.add(_span("op", " = "));
+        els.addAll(_toElements(node.initializer));
+      }
+    }
+    else if(node is BinaryOp){
+      els = _toElements(node.left);
+      els.add(_span("op", " ${BinaryOp.operatorToString(node.type)} "));
+      els.addAll(_toElements(node.right));
+    }
+    else if(node is Return){
+      els = [_span("keyword", "return ")];
+      els.addAll(_toElements(node.expr));
+    }
+    else if(node is int)
+      els = [_span("literal", "$node")];
+    else if(node is String)
+      els = [_span("literal", "\"$node\"")];
+    else throw "Not able to print: ${node.runtimeType} : \"${node}\"";
+    
+    return els;
+  }
+  
+  static List<Element> _addSeparators(List<Element> list, List<Element> e){
+    if(!list.isEmpty)
+      list.add(_span("", ", "));
+    list.addAll(e);
+    return list;
   }
   
   static String reduceList(String reduct, e){
     if(reduct.isEmpty)
-      return "$e";
+      return "${_toElements(e)}";
 
-    return "$reduct, $e";
+    return "$reduct, ${_toElements(e)}";
   }
 }
