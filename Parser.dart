@@ -90,7 +90,7 @@ class Program {
   parseAssignment(Map json) => new Assignment.fromJson(json, parseObject(json['variable']), parseObject(json['expr']));
 
   parseMethod(Map json) {
-    MethodDecl method = new MethodDecl.fromJson(json, parseType(json['type']), json['parameters'].map(parseObject), json['body']['statements'].map(parseObject));
+    MethodDecl method = new MethodDecl.fromJson(json, new Type.fromJson(json['type']), json['parameters'].map(parseObject), json['body']['statements'].map(parseObject));
     
     if(method.name == "main" && method.type == MethodType.main){
       this.main = method;
@@ -105,16 +105,16 @@ class Program {
     return clazz;  
   }
   
-  Variable parseVar(Map json) => new Variable.fromJson(json, parseType(json['type']), parseObject(json['initializer']));
+  Variable parseVar(Map json) => new Variable.fromJson(json, new Type.fromJson(json['type']), parseObject(json['initializer']));
   
-  parseType(Map json){
-    switch(json['NODE_TYPE']){
-      case 'primitive':
-        return new Type.primitive(json['value']);
-      case 'identifier':
-        return new Type.declared(json['value']);
-      default:
-        throw "Type declaration not supported yet: ${json['NODE_TYPE']}";
-    }
-  }
+//  parseType(Map json){
+//    switch(json['NODE_TYPE']){
+//      case 'primitive':
+//        return new Type.primitive(json['value']);
+//      case 'identifier':
+//        return new Type.declared(json['value']);
+//      default:
+//        throw "Type declaration not supported yet: ${json['NODE_TYPE']}";
+//    }
+//  }
 }

@@ -5,7 +5,7 @@ class ASTNode {
   final int endPos;
   final List<String> modifiers;
   
-  const ASTNode(this.startPos, this.endPos, [this.modifiers]);
+  const ASTNode([this.startPos, this.endPos, this.modifiers]);
     
   ASTNode.fromJson(Map json) : this.startPos = json['startPos'], this.endPos = json['endPos'], this.modifiers = []{
     Map modifiersJson = json['modifiers']; 
@@ -44,22 +44,20 @@ class ClassDecl extends ASTNode {
 //  String toString() => "<div class=\"line\">class $name {</div> ${members.reduce("", (r, m) => "$r$m")} <div class=\"line\">}</div>";
 }
 
-class Type {
-  static const PRIMITIVE = "primitive";
-  static const DECLARED = "declared";
-  
+class Type extends ASTNode {
   final String id;
-  final String type;
+  final bool isPrimitive;
   
-  const Type.primitive(this.id) : this.type = PRIMITIVE;
-  const Type.declared(this.id) : this.type = DECLARED;
+  Type.fromJson(Map json) : this.id = json['value'], this.isPrimitive = (json['NODE_TYPE'] == "primitive"), super.fromJson(json);
+  const Type.primitive(this.id) : this.isPrimitive = true, super();
+  const Type.declared(this.id) : this.isPrimitive = false, super();
   
   static const Type VOID = const Type.primitive("VOID");
   static const Type STRING = const Type.declared("String");
   
   String toString(){
     String r = "$id";
-    if(type == PRIMITIVE)
+    if(isPrimitive)
       r = r.toLowerCase();
     return r;
   }
@@ -68,10 +66,8 @@ class Type {
     if(identical(other, this))
       return true;
 
-    return id == other.id && type == other.type;
+    return id == other.id && isPrimitive == other.isPrimitive;
   }
-  
-  bool isPrimitive() => type == PRIMITIVE;
 }
 
 class MethodType {
@@ -219,6 +215,8 @@ class MemberSelect extends ASTNode {
   
   const MemberSelect(this.member_id, this.owner, [int startPos, int endPos]) : super(startPos, endPos) ;
   MemberSelect.fromJson(Map json, this.owner) : this.member_id = json['member_id'], super.fromJson(json);
+  
+  String toString() => "$owner.$member_id";
 }
 
 class Identifier extends ASTNode {

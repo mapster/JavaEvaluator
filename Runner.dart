@@ -127,13 +127,13 @@ class Runner {
       var a = args[i];
 
       //both primitive
-      if(p.isPrimitive() && a is! ClassEnv){
-        if(p.type.toLowerCase() != a.runtimeType.toLowerCase())
+      if(p.isPrimitive && a is! ClassEnv){
+        if(p.id.toLowerCase() != a.runtimeType.toLowerCase())
           return false;
       }
       //both declared
-      else if(!p.isPrimitive() && a is ClassEnv){
-        if(p.type != a.decl.name)
+      else if(!p.isPrimitive && a is ClassEnv){
+        if(p.id != a.decl.name)
           return false;
       }
     }
