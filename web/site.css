@@ -2,12 +2,31 @@
   padding-left: 15px;  
 }
 
-.javasource {
+#javasource {
   font-family: monospace
-  font-size: 15px;    
+  font-size: 15px;
+  float: left;    
+}
+
+#environment {
+  float: right;
 }
 
 .keyword {
   color: #7F0055;
   font-weight: bold;  
+}
+
+div.line {
+  position: relative;
+}
+
+
+#stack {
+  clear: both;
+}
+
+div.arrow {
+  position: absolute;
+  background-color: blue;
 }

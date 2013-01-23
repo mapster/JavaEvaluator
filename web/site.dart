@@ -2,12 +2,13 @@ library site;
 
 import 'dart:html';
 import 'dart:json';
+import 'dart:math';
 import '../Parser.dart';
 
 String exampleSource = "class Mains { public static void main(String args){ int x = 3; x = 5; x = 10; x = 21; if(x == 21) x = 22; } }";
 String toJsonUrl = "/tojson";
 
-DivElement tekst = query("#tekst");
+DivElement java = query("#java");
 DivElement environment = query("#environment");
 Program prog;
 Runner runner;
@@ -19,13 +20,16 @@ void main() {
   //  Parser.prog.root.map(f)
   bruk.on.click.add((Event e){readFile();});
   stepBtn.on.click.add((Event e){step();});
-  query("#example").on.click.add((Event e){postSourceToJsonService(exampleSource);});  
+  query("#example").on.click.add((Event e){postSourceToJsonService(exampleSource);});
+  
+//  drawArrow(new Pos(), new Pos(), 7);
 }
 
 void step(){
   if(!runner.isDone()){
     runner.step();
     printEnv();
+    query("#stack").text = runner.programstack.toString();
   }
 
   if(runner.isDone())
@@ -46,7 +50,7 @@ postSourceToJsonService(String data){
       if(req.readyState == HttpRequest.DONE && (req.status == 200 || req.status == 0)){
         prog = (new Program(JSON.parse(req.responseText)));
         runner = new Runner(prog);
-        tekst.children = [Printer.toHtml(prog.root.first)];
+        java.children[0] = Printer.toHtml(prog.root.first);
         stepBtn.disabled = false;
         environment.children.clear();
       }
@@ -82,3 +86,32 @@ void printEnv(){
 
   environment.children = [hValues, values, hAssigns, assigns];
 }
+
+//void drawArrow(Pos p1, Pos p2, num width){
+//  DivElement arrow = new DivElement();
+//  arrow.attributes['class'] = "arrow";
+//  
+//  num length = sqrt(pow(p1.x - p2.x, 2) + pow(p1.y - p2.y, 2));
+//  num angle = asin((p1.y - p2.y).abs() / length)*180/PI;
+//  
+//  Pos c = new Pos((p1.x + p2.x).abs()~/2 - length~/2, (p1.y + p2.y).abs()~/2 - width/2);
+//  if(p1.x < p2.x && p1.y > p2.y)
+//    angle = -angle;
+//  else if(p1.x > p2.x && p1.y < p2.y)
+//    angle = -angle;
+//  
+//  arrow.style.transform = "rotate(${angle}deg)";
+//  arrow.style.left = "${c.x}px";
+//  arrow.style.top = "${c.y}px";
+//  arrow.style.width = "${length}px";
+//  arrow.style.height = "${width}px";
+//  
+//  cont.children.add(arrow);
+//}
+//
+//class Pos {
+//  num x;
+//  num y;
+//  Pos(this.x, this.y);
+//  String toString() => "($x:$y)";
+//}
