@@ -35,10 +35,10 @@ class Environment {
    * Initializes a class instance, i.e. stores all fields with an initial value in memory and returns the class environment.
    */
   //TODO potential mess with primitive values
-  ClassEnv newClassInstance(ClassDecl clazz, Map<String, Identifier> initialValues, [bool static = false]){
-    Map<String, dynamic> addr = new Map<String, dynamic>();
-    for(String key in initialValues.keys){
-      addr[key] = _lookUpAddress(initialValues[key]);
+  ClassEnv newClassInstance(ClassDecl clazz, List<Identifier> initialValues, [bool static = false]){
+    Map<Identifier, dynamic> addr = new Map<Identifier, dynamic>();
+    for(Identifier key in initialValues){
+      addr[key] = _lookUpAddress(key);
     }
     return new ClassEnv(clazz, addr, static);
   }
@@ -102,12 +102,13 @@ class Address {
 
 class ClassEnv {
   final ClassDecl decl;
-  final Map<String, dynamic> _variables = new Map<String, dynamic>();
+  final Map<Identifier, dynamic> _variables = new Map<Identifier, dynamic>();
   final bool _static;
   
-  ClassEnv(this.decl, Map<String, dynamic> initialValues, [this._static = false]){
+  ClassEnv(this.decl, Map<Identifier, dynamic> initialValues, [this._static = false]){
     initialValues.keys.forEach((name){
-      if((_static && decl.staticVariables.containsKey(name)) || !_static && decl.instanceVariables.containsKey(name))
+      if((_static && !decl.staticVariables.where((e) => e.name == name.name).isEmpty) || 
+          (!_static && !decl.instanceVariables.where((e) => e.name == name.name).isEmpty))
         _variables[name] = initialValues[name];
       else
         throw "Class ${decl.name} has no${_static ? " static" : ""} variable named ${name}";
@@ -119,7 +120,7 @@ class ClassEnv {
   /**
    * Returns address or primitive value of named variable. 
    */
-  dynamic lookUp(String name){
+  dynamic lookUp(Identifier name){
     return _variables[name];
   }
 }

@@ -6,20 +6,23 @@ class Runner {
   Program program;
   List<List<dynamic>> programstack = [];
   List<dynamic> returnValues = [];
+  ASTNode _current;
+  
+  ASTNode get current => _current;
   
   Runner(this.program) {
     programstack.add([new MethodCall.main(["streng argument til main"])]);
-    program.classDeclarations.values.map(loadClass);
+    program.classDeclarations.values.forEach(loadClass);
   }
   
   void loadClass(ClassDecl clazz) {
     environment.addScope();
-    Map<String, Identifier> initialValues = new Map<String, Identifier>();
-    clazz.staticVariables.values.forEach((variable) {
+    List<Identifier> initialValues = new List<Identifier>();
+    clazz.staticVariables.forEach((variable) {
       if(variable.initializer != null){
         Identifier id = new Identifier(variable.name);
         environment.newVariable(id, _eval(variable.initializer));
-        initialValues[id.name] = id;
+        initialValues.add(id);
       }
     });
     ClassEnv static = environment.newClassInstance(clazz, initialValues, true);
@@ -28,7 +31,8 @@ class Runner {
   }
     
   void step(){
-    var result = _eval(_popStatement());
+    _current = _popStatement();
+    var result = _eval(current);
     if(result is EvalTree)
       programstack[programstack.length-2].insertRange(0, 1, result);
   }
@@ -66,8 +70,8 @@ class Runner {
   dynamic _eval(statement){
     if(statement is EvalTree)
       return statement.execute();
-    else if(statement is MethodDecl)
-      return _evalMethod(statement);
+//    else if(statement is MethodDecl)
+//      return _evalMethod(statement);
     else if(statement is Variable)
       return _evalVariable(statement);
     else if(statement is MethodCall)
@@ -91,14 +95,14 @@ class Runner {
 
   _evalMethodCall(MethodCall call) {
     //TODO arguments may contain methodcall, fix to support this.
-    List<dynamic> args = call.arguments.map(_eval); 
+    List<dynamic> args = call.arguments.mappedBy(_eval).toList(); 
     
     if(call.select is MemberSelect){
-      String name = (call.select as MemberSelect).member_id;
+      Identifier name = (call.select as MemberSelect).member_id;
       ClassEnv inst = environment.lookUp((call.select as MemberSelect).owner);
     
-      MethodDecl method = inst.getMethods().filter((MethodDecl m){
-       if(m.name != name)
+      MethodDecl method = inst.getMethods().where((MethodDecl m){
+       if(m.name != name.name)
          return false;
        
         return _checkParamArgTypeMatch(m.type.parameters, args);        
@@ -140,11 +144,11 @@ class Runner {
     return true;
   }
   
-  _evalMethod(MethodDecl method){
-    for(dynamic statement in method.body){
-      _eval(statement);
-    }
-  }
+//  _evalMethod(MethodDecl method){
+//    for(dynamic statement in method.body){
+//      _eval(statement);
+//    }
+//  }
   
   _evalBinaryOp(BinaryOp binary) {
     switch(binary.type){
@@ -189,12 +193,12 @@ class Runner {
 
 }
 
-class EvalTree {
+class EvalTree extends ASTNode {
   final arg1;
   final arg2;
   var method;
   
-  EvalTree([this.method, this.arg1, this.arg2]);
+  EvalTree([this.method, this.arg1, this.arg2]) : super();
   
   execute(){
     if(arg1 != null){

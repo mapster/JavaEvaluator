@@ -30,10 +30,21 @@ void step(){
     runner.step();
     printEnv();
     query("#stack").text = runner.programstack.toString();
+    selectCurrent();
   }
 
   if(runner.isDone())
     stepBtn.disabled = true;
+}
+
+selectCurrent(){
+  List<Element> prevs = queryAll(".current");
+  if(prevs != null)
+    prevs.mappedBy((e) => e.classes.remove("current"));
+  
+  Element current = query("#node${runner.current.nodeId}");
+  if(current != null)
+    current.classes.add("current");
 }
 
 readFile(){
@@ -48,11 +59,13 @@ postSourceToJsonService(String data){
   
   req.on.readyStateChange.add((Event e){
       if(req.readyState == HttpRequest.DONE && (req.status == 200 || req.status == 0)){
-        prog = (new Program(JSON.parse(req.responseText)));
+        prog = (new Program(parse(req.responseText)));
         runner = new Runner(prog);
         java.children[0] = Printer.toHtml(prog.root.first);
         stepBtn.disabled = false;
         environment.children.clear();
+        printEnv();
+        query("#stack").text = runner.programstack.toString();
       }
   });
   
@@ -65,24 +78,24 @@ void printEnv(){
   HeadingElement hValues = new HeadingElement.h3();
   hValues.text = "Values";
   DivElement values = new DivElement();
-  values.children = runner.environment.values.keys.map((key){
+  values.children = runner.environment.values.keys.mappedBy((key){
     DivElement val = new DivElement();
     val.text = "$key: ${runner.environment.values[key]}";
     return val;
-  });
+  }).toList();
 
   HeadingElement hAssigns = new HeadingElement.h3();
   hAssigns.text = "Assignments";
   DivElement assigns = new DivElement();
-  assigns.children = runner.environment.assignments.map((Map<Identifier, int> map){
+  assigns.children = runner.environment.assignments.mappedBy((Map<Identifier, int> map){
     DivElement scope = new DivElement();
-    scope.children = map.keys.map((key){
+    scope.children = map.keys.mappedBy((key){
       DivElement assign = new DivElement();
       assign.text = "$key: ${map[key]}";
       return assign;
-    });
+    }).toList();
     return scope;
-  });
+  }).toList();
 
   environment.children = [hValues, values, hAssigns, assigns];
 }

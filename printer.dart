@@ -40,34 +40,35 @@ class Printer {
   
   
   static _toHtml(ASTNode astNode, DivElement root){
+    DivElement div = _createLineDiv();
+    div.attributes['id'] = "node${astNode.nodeId}";
+    
     if(astNode is ClassDecl){
       ClassDecl node = astNode;
       
-      DivElement div = _createLineDiv();
-      div.children.addAll(node.modifiers.map((e) => "$e ").map(_keyword));
+      div.children.addAll(node.modifiers.mappedBy((e) => "$e ").toList().mappedBy(_keyword).toList());
       div.children.add(_keyword("class"));
       div.children.add(_code(" ${node.name} {"));
       root.children.add(div);
       
       DivElement members = _createIndentDiv();
-      node.members.map((e) => _toHtml(e, members));
+      node.members.forEach((e) => _toHtml(e, members));
       
       root.children.addAll([members, _createLineDiv("}")]);
     }
     else if(astNode is MethodDecl){
       MethodDecl node = astNode;
       
-      DivElement div = _createLineDiv();
-      div.children.addAll(node.modifiers.map((e) => "$e ").map(_keyword));
+      div.children.addAll(node.modifiers.mappedBy((e) => "$e ").toList().mappedBy(_keyword).toList());
       div.children.addAll(_toElements(node.type.returnType));
       
       div.children.addAll([_span("id", " ${node.name}"), _span("", "(")]);
-      div.children.addAll(node.parameters.map(_toElements).reduce(new List<Element>(), _addSeparators));
+      div.children.addAll(node.parameters.mappedBy(_toElements).reduce(new List<Element>(), _addSeparators));
       div.children.add(_span("", ") {"));
       root.children.add(div);
       
       DivElement body = _createIndentDiv();
-      node.body.map((e) => _toHtml(e, body));
+      node.body.forEach((e) => _toHtml(e, body));
       
       root.children.addAll([body, _createLineDiv("}")]);
     }
@@ -77,7 +78,7 @@ class Printer {
 //    }
     else if(astNode is If){
       If node = astNode;
-      DivElement div = _createLineDiv();
+
       div.children.addAll([_keyword("if"), _span("", "(")]);
       div.children.addAll(_toElements(node.condition));
       div.children.add(_span("", "){"));
@@ -85,17 +86,16 @@ class Printer {
       
       //add the then-block
       DivElement then = _createIndentDiv();
-      node.then.map((e) => _toHtml(e, then));
+      node.then.forEach((e) => _toHtml(e, then));
       root.children.addAll([then, _createLineDiv("}")]);
       
       //add the else-block
       if(node.elze != null){
-        DivElement div = _createLineDiv();
         div.children.addAll([_keyword("else"), _span("", "{")]);
         root.children.add(div);
         
         DivElement elze = _createIndentDiv();
-        node.elze.map((e) => _toHtml(e, elze));
+        node.elze.forEach((e) => _toHtml(e, elze));
         root.children.addAll([elze, _createLineDiv("}")]);
       }
       
@@ -107,7 +107,6 @@ class Printer {
 //      root.children.add(div);
 //    }
     else {
-      DivElement div = _createLineDiv();
       div.children = _toElements(astNode);
       div.children.add(_span("", ";"));
       root.children.add(div);
@@ -126,7 +125,7 @@ class Printer {
     else if(node is MethodCall){
       MethodCall call = node;
       els = [_span("call", "${call.select}"), _span("", "(")];
-      els.addAll(call.arguments.map(_toElements).reduce(new List<Element>(), _addSeparators));
+      els.addAll(call.arguments.mappedBy(_toElements).reduce(new List<Element>(), _addSeparators));
       els.add(_span("", ")"));
     }
     else if(node is Type){
@@ -156,7 +155,7 @@ class Printer {
       els = [_span("literal", "\"$node\"")];
     else throw "Not able to print: ${node.runtimeType} : \"${node}\"";
     
-    return els;
+    return els.toList();
   }
   
   static List<Element> _addSeparators(List<Element> list, List<Element> e){

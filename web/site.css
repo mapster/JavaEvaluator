@@ -30,3 +30,7 @@ div.arrow {
   position: absolute;
   background-color: blue;
 }
+
+div.current {
+  background-color: red;  
+}

@@ -1,9 +1,12 @@
 part of JavaEvaluator;
 
 class ASTNode {
+  static int _counter = 0;
+  
   final int startPos;
   final int endPos;
   final List<String> modifiers;
+  final int nodeId = _counter++;
   
   const ASTNode([this.startPos, this.endPos, this.modifiers]);
     
@@ -24,24 +27,18 @@ class ASTNode {
 class ClassDecl extends ASTNode {
   String name;
   
-  final Map<String, Variable> instanceVariables = {};
-  final Map<String, Variable> staticVariables = {};
+  final List<Variable> instanceVariables;
+  final List<Variable> staticVariables;
   final List<MethodDecl> instanceMethods;
   final List<MethodDecl> staticMethods;
   final List<ASTNode> members;
   
   ClassDecl.fromJson(Map json, List<ASTNode> members) : this.name = json['name'],this.members = members, 
-                                      this.staticMethods = members.filter((m) => m.isStatic() && m is MethodDecl),
-                                      this.instanceMethods = members.filter((m) => !m.isStatic() && m is MethodDecl),
-                                      super.fromJson(json){
-    members.filter((m) => m is Variable).forEach((Variable v){
-      if(v.isStatic())
-        staticVariables[v.name] = v;
-      else
-        instanceVariables[v.name] = v;
-    });
-  }
-//  String toString() => "<div class=\"line\">class $name {</div> ${members.reduce("", (r, m) => "$r$m")} <div class=\"line\">}</div>";
+                                      this.staticMethods = members.where((m) => m.isStatic() && m is MethodDecl).toList(),
+                                      this.instanceMethods = members.where((m) => !m.isStatic() && m is MethodDecl).toList(),
+                                      this.staticVariables = members.where((v) => v.isStatic() && v is Variable).toList(),
+                                      this.instanceVariables = members.where((v) => !v.isStatic() && v is Variable).toList(),
+                                      super.fromJson(json);
 }
 
 class Type extends ASTNode {
@@ -102,9 +99,9 @@ class MethodDecl extends ASTNode {
   final List<Variable> parameters;
   final List body;
   
-  MethodDecl(this.name, Type returnType, List<Variable> parameters, this.body, [int startPos, int endPos]) : this.type = new MethodType(returnType, parameters.map((v) => v.type)), 
+  MethodDecl(this.name, Type returnType, List<Variable> parameters, this.body, [int startPos, int endPos]) : this.type = new MethodType(returnType, parameters.mappedBy((v) => v.type).toList()), 
                                                                                                             this.parameters = parameters, super(startPos, endPos);
-  MethodDecl.fromJson(Map json, returnType, parameters, this.body) : this.name = json['name'], this.type = new MethodType(returnType, parameters.map((v) => v.type)), this.parameters = parameters, super.fromJson(json); 
+  MethodDecl.fromJson(Map json, returnType, parameters, this.body) : this.name = json['name'], this.type = new MethodType(returnType, parameters.mappedBy((v) => v.type).toList()), this.parameters = parameters, super.fromJson(json); 
   
   String toString() {
     StringBuffer string = new StringBuffer("<div class=\"line\">${type.returnType} $name(");
@@ -137,7 +134,7 @@ class MethodCall extends ASTNode {
   const MethodCall(this.select, this.arguments, [int startPos, int endPos]) : super(startPos, endPos);
   MethodCall.fromJson(Map json, this.select, this.arguments) : super.fromJson(json);
   
-  const MethodCall.main(this.arguments) : super(0,0), this.select = const MemberSelect("main", const Identifier("Mains"));
+  MethodCall.main(this.arguments) : super(0,0), this.select = new MemberSelect("main", const Identifier("Mains"));
   
   String toString() => "$select()"; 
 }
@@ -210,11 +207,11 @@ class BinaryOp extends ASTNode {
 }
 
 class MemberSelect extends ASTNode {
-  final String member_id;
+  final Identifier member_id;
   final ASTNode owner;
   
-  const MemberSelect(this.member_id, this.owner, [int startPos, int endPos]) : super(startPos, endPos) ;
-  MemberSelect.fromJson(Map json, this.owner) : this.member_id = json['member_id'], super.fromJson(json);
+  MemberSelect(final member_id, this.owner, [int startPos, int endPos]) : this.member_id = new Identifier(member_id), super(startPos, endPos);
+  MemberSelect.fromJson(Map json, this.owner) : this.member_id = new Identifier(json['member_id']), super.fromJson(json);
   
   String toString() => "$owner.$member_id";
 }
