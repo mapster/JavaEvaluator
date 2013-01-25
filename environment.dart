@@ -3,32 +3,29 @@ part of JavaEvaluator;
 class Environment {
   int _counter = 0;
   final Map<Address, dynamic> values = new Map<Address, dynamic>();
-  final List<Map<Identifier, dynamic>> assignments = [new Map<Identifier, dynamic>()];
-  
-  void popScope(){ assignments.removeLast(); }
-  void addScope(){ assignments.addLast(new Map<Identifier, dynamic>()); }
+//  final List<Scope> programstack = [new Scope.block([])];
+//  
+//  void popScope(){ programstack.removeLast(); }
+//  void addBlock(statements){ programstack.addLast(new Scope.block(statements)); }
+//  void addMethod(statements){ programstack.addLast(new Scope.block(statements)); }
+//  
+  Scope staticContext = new Scope.block([]);
+  Scope currentContext;
   
   void newVariable(Identifier name, [dynamic value]){
-    assignments.last[name] = Address.invalid;
+    if(!?value)
+      value = Address.invalid;
+    else if(value is ClassScope)
+      value = _newValue(value);
     
-    if(?value){
-      if(value is ClassEnv)
-        value = _newValue(value);
-      assign(name, value);
-    }
-
-    print("declaring: $name ${assignments.last[name] is Address ? " at [${assignments.last[name]}]" : ""} with value $value of type ${value.runtimeType}");
+    else currentContext.newVariable(name, value);
   }
   
   void assign(Identifier name, dynamic value){
-    Map<Identifier, dynamic> scope = _findScope(name);
-    if(scope != null){
-      if(value is Identifier)
-        scope[name] = _lookUpAddress(value);
-      else
-        scope[name] = value;
-    }
-    else throw "Variable [${name.name}] is not declared!";
+    if(value is ClassScope)
+      value = _newValue(value);      
+    
+    currentContext.assign(name, value);
   }
 
   /**
@@ -44,52 +41,55 @@ class Environment {
   }
   
   dynamic lookUp(variable){
-    if(variable is Identifier){
-      Map<Identifier, dynamic> scope = _findScope(variable);
-      if(scope != null){
-        if(scope[variable] is Address)
-          return values[scope[variable]];
-        else 
-          return scope[variable];
-      }
-      
+    if(variable is! MemberSelect && variable is! Identifier)
+      throw "Can't lookup value by using ${variable.runtimeType}";
+    
+    var val = null;
+    if(variable is MemberSelect)
+      val = staticContext.lookUp(variable);
+    
+    if(val == null)
+        val = currentContext.lookUp(variable);
+    
+    if(val == null)
       throw "Variable [${variable.name}] not declared.";
-    }
-    else if(variable is MemberSelect){
-      var owner = lookUp(variable.owner);
-      if(owner is! ClassEnv)
-        throw "Can't select member of a primitive value.";
-      
-      var member = owner.lookUp(variable.member_id);
-      if(member is Address)
-        return values[member]; 
-      else
-        return member;
-    }
-    else throw "Can't lookup value by using ${variable}";    
+    
+    return val is Address ? values[val] : val;
   }
   
-  Address _newValue(dynamic value){
+  Address _newValue(ClassScope value){
     Address addr = new Address(++_counter);
     values[addr] = value;
     return addr;
   }
   
-  Address _lookUpAddress(Identifier name){
-    Map<Identifier, dynamic> scope = _findScope(name);
-    if(scope != null)
-      return scope[name];
-    
-    throw "Variable [${name.name}] is not declared!";
+//  Address _lookUpAddress(Identifier name){
+//    Map<Identifier, dynamic> scope = _findScope(name);
+//    if(scope != null)
+//      return scope[name];
+//    
+//    throw "Variable [${name.name}] is not declared!";
+//  }
+//  
+//  Map<Identifier, dynamic> _findScope(Identifier name){
+//    for(int i = assignments.length-1; i >= 0; i--){
+//      Map<Identifier, dynamic> scope = assignments[i];
+//      if(scope.containsKey(name))
+//        return scope;
+//    }
+//    return null;
+//  }
+
+  callMemberMethod(MemberSelect select, List<dynamic> args) {
+    ClassScope env = lookUp(select.owner);
+    loadEnv(env);
+    env.loadMethod(select.member_id, args);
   }
   
-  Map<Identifier, dynamic> _findScope(Identifier name){
-    for(int i = assignments.length-1; i >= 0; i--){
-      Map<Identifier, dynamic> scope = assignments[i];
-      if(scope.containsKey(name))
-        return scope;
-    }
-    return null;
+  void loadEnv(Scope env){
+    if(env is! ClassScope)
+      throw "Can only load class scope as primary environment!";
+    programstack.addLast(env);
   }
 }
 
@@ -98,6 +98,13 @@ class Address {
   const Address(this.addr);
   static const invalid = const Address(-1);
   String toString() => "[$addr]";
+  
+  int get hashCode => 37 + addr;
+  bool operator==(other){
+    if(identical(other, this))
+      return true;
+    return addr == other.addr;
+  }
 }
 
 class ClassEnv {
@@ -122,5 +129,90 @@ class ClassEnv {
    */
   dynamic lookUp(Identifier name){
     return _variables[name];
+  }
+}
+
+class Scope {
+  final Map<Identifier, dynamic> assignments = new Map<Identifier, dynamic>();
+  final List<dynamic> statements;
+  final bool isMethod;
+  
+  Scope.block(this.statements) : isMethod = false;
+  Scope.method(this.statements) : isMethod = true;
+  
+  void newVariable(Identifier name, [dynamic value]){
+    assignments[name] = Address.invalid;
+    
+    if(?value){
+      assign(name, value);
+    }
+
+    print("declaring: $name ${assignments[name] is Address ? " at [${assignments[name]}]" : ""} with value $value of type ${value.runtimeType}");
+  }
+  
+  void assign(Identifier name, dynamic value){
+    if(!assignments.containsKey(name))
+      throw "Variable [${name.name}] is not declared!";
+      
+    assignments[name] = value;
+  }
+  
+  dynamic lookUp(variable){
+    
+  }
+}
+
+class ClassScope extends Scope {
+  final List<Scope> _subscopes = new List<Scope>();
+  final ClassDecl clazz;
+  final bool isStatic;
+  
+  ClassScope(this.clazz) : isStatic = false, super.block([]);
+  ClassScope.static(this.clazz) : isStatic = true, super.block([]);
+
+  addSubScope(Scope s) => _subscopes.add(s);
+  
+  void assign(Identifier name, dynamic value){
+    if(_subscopes.isEmpty)
+      super.assign(name, value);
+    _subscopes.last.assign(name, value);
+  }
+  
+  void newVariable(Identifier name, [dynamic value]){
+    if(_subscopes.isEmpty)
+      super.newVariable(name, value);
+    _subscopes.last.assign(name, value);
+  }
+  
+  void loadMethod(Identifier name, List args) {
+    List<MethodDecl> methods = isStatic ? clazz.staticMethods : clazz.instanceMethods;
+    MethodDecl method = methods.singleMatching((m) => m.name == name.name && _checkParamArgTypeMatch(m.type.parameters, args));
+    addSubScope(new Scope.method(method.body));
+    
+    for(int i = 0; i < method.parameters.length; i++){
+      newVariable(new Identifier(method.parameters[i].name), args[i]);
+    }
+  }
+  
+  bool _checkParamArgTypeMatch(List<Type> parameters, List<dynamic> args) {
+    if(parameters.length != args.length)
+      return false;
+    
+    for(int i = 0; i < parameters.length; i++){
+      Type p = parameters[i];
+      var a = args[i];
+
+      //both primitive
+      if(p.isPrimitive && a is! ClassEnv){
+        if(p.id.toLowerCase() != a.runtimeType.toLowerCase())
+          return false;
+      }
+      //both declared
+      else if(!p.isPrimitive && a is ClassEnv){
+        if(p.id != a.decl.name)
+          return false;
+      }
+    }
+    return true;
   }
 }

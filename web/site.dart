@@ -40,7 +40,7 @@ void step(){
 selectCurrent(){
   List<Element> prevs = queryAll(".current");
   if(prevs != null)
-    prevs.mappedBy((e) => e.classes.remove("current"));
+    prevs.forEach((e) => e.classes.remove("current"));
   
   Element current = query("#node${runner.current.nodeId}");
   if(current != null)

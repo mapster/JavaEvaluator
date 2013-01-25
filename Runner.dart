@@ -121,6 +121,26 @@ class Runner {
     }
     else throw "Currently only support member select method calls";   
   }
+  
+  _evalMethodCall2(MethodCall call){
+    //TODO arguments may contain methodcall, fix to support this.
+    List<dynamic> args = call.arguments.mappedBy((arg){
+      if(arg is Identifier)
+        return arg;
+      if(arg is MemberSelect)
+        throw "Don't support method calls as arguments yet";
+      return _eval(arg);
+    }).toList();
+    
+    
+    if(call.select is MemberSelect){
+      environment.callMemberMethod(call.select, args);
+    }
+    else {
+      environment.callMethod(call.select, args);
+    }
+      
+  }
 
   bool _checkParamArgTypeMatch(List<Type> parameters, List<dynamic> args) {
     if(parameters.length != args.length)
