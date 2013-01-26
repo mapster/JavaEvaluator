@@ -5,18 +5,32 @@ class Environment {
   final Map<Address, dynamic> values = new Map<Address, dynamic>();
 //  final List<Scope> programstack = [new Scope.block([])];
 //  
-//  void popScope(){ programstack.removeLast(); }
-//  void addBlock(statements){ programstack.addLast(new Scope.block(statements)); }
+  void popScope(){ contextStack.removeLast(); }
+  void addBlockScope(statements){ contextStack.addLast(new Scope.block(statements)); }
 //  void addMethod(statements){ programstack.addLast(new Scope.block(statements)); }
 //  
   Scope staticContext = new Scope.block([]);
   List<Scope> contextStack = [];
   Scope get currentContext => contextStack.last;
   
-  void newVariable(Identifier name, [dynamic value]){
-    if(!?value)
-      value = Address.invalid;
-    else if(value is ClassScope)
+  dynamic popStatement(){
+    while(currentContext.isDone)
+      contextStack.removeLast();
+    return currentContext.popStatement();
+  }
+  
+  bool get isDone {
+    if(contextStack.isEmpty)
+      return true;
+    return contextStack.every((s) => s.isDone);
+  }
+  
+  void newStaticClass(ClassScope clazz){
+    staticContext.newVariable(new Identifier(clazz.clazz.name),_newValue(clazz));
+  }
+  
+  void newVariable(Identifier name, [dynamic value = Address.invalid]){
+    if(value is ClassScope)
       value = _newValue(value);
     
     else currentContext.newVariable(name, value);
@@ -33,11 +47,15 @@ class Environment {
    * Initializes a class instance, i.e. stores all fields with an initial value in memory and returns the class environment.
    */
   //TODO potential mess with primitive values
-  ClassScope newClassInstance(ClassDecl clazz, List<Identifier> initialValues, [bool static = false]){
+  ClassScope newClassInstance(ClassDecl clazz, [bool static = false]){
+    List<Variable> variables = static ? clazz.staticVariables : clazz.instanceVariables;
     Map<Identifier, dynamic> addr = new Map<Identifier, dynamic>();
-    for(Identifier key in initialValues){
-      addr[key] = _lookUpAddress(key);
-    }
+    print("new class with: ${variables.length}");
+    variables.forEach((v){
+      Identifier id = new Identifier(v.name);
+      addr[id] = _lookUpAddress(id);
+    });
+    
     return new ClassScope(clazz, addr, static);
   }
   
@@ -155,23 +173,19 @@ class Address {
 
 class Scope {
   final Map<Identifier, dynamic> assignments = new Map<Identifier, dynamic>();
-  final List<dynamic> statements;
+  final List<dynamic> _statements = [];
   final bool isMethod;
   Scope _subscope;
   
-  Scope.block(this.statements) : isMethod = false;
-  Scope.method(this.statements) : isMethod = true;
+  Scope.block(List statements) : isMethod = false { _statements.addAll(statements); }
+  Scope.method(List statements) : isMethod = true { _statements.addAll(statements); }
   
-  void newVariable(Identifier name, [dynamic value]){
+  void newVariable(Identifier name, [dynamic value = Address.invalid]){
     if(_subscope != null){
-      _subscope.newVariable(name, value);
+        _subscope.newVariable(name, value);
     }
     else {
-      assignments[name] = Address.invalid;
-      
-      if(?value){
-        assign(name, value);
-      }
+      assignments[name] = value;
       print("declaring: $name ${assignments[name] is Address ? " at [${assignments[name]}]" : ""} with value $value of type ${value.runtimeType}");
     }
   }
@@ -195,6 +209,22 @@ class Scope {
   
     return assignments[variable];
   }
+  
+  dynamic popStatement(){
+    if(_subscope != null && _subscope.isDone)
+        _subscope = null;
+    
+    if(_subscope != null)
+      return _subscope.popStatement();
+    
+    return _statements.removeAt(0);
+  }
+  
+  bool get isDone {
+    if(_subscope != null && !_subscope.isDone)
+      return false;
+    return _statements.isEmpty;
+  }
 }
 
 class ClassScope extends Scope {
@@ -202,14 +232,18 @@ class ClassScope extends Scope {
   final ClassDecl clazz;
   final bool isStatic;
   
-  ClassScope(this.clazz, Map<Identifier, dynamic> initialValues, this.isStatic) : super.block([]);
+  ClassScope(this.clazz, Map<Identifier, dynamic> initialValues, this.isStatic) : super.block([]){
+    initialValues.forEach((Identifier id, value){
+      assignments[id] = value;
+    });
+  }
 
   addSubScope(Scope s) => _subscopes.add(s);
   
-  void newVariable(Identifier name, [dynamic value]){
+  void newVariable(Identifier name, [dynamic value = Address.invalid]){
     if(_subscopes.isEmpty)
       super.newVariable(name, value);
-    _subscopes.last.assign(name, value);
+    _subscopes.last.newVariable(name, value);
   }
   
   void assign(Identifier name, dynamic value){
@@ -243,13 +277,13 @@ class ClassScope extends Scope {
       var a = args[i];
 
       //both primitive
-      if(p.isPrimitive && a is! ClassEnv){
+      if(p.isPrimitive && a is! ClassScope){
         if(p.id.toLowerCase() != a.runtimeType.toLowerCase())
           return false;
       }
       //both declared
-      else if(!p.isPrimitive && a is ClassEnv){
-        if(p.id != a.decl.name)
+      else if(!p.isPrimitive && a is ClassScope){
+        if(p.id != a.clazz.name)
           return false;
       }
     }

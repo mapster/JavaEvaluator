@@ -4,68 +4,63 @@ class Runner {
 //  List<Map<Identifier, dynamic>> environment = new List<Map<Identifier, dynamic>>();
   Environment environment = new Environment();
   Program program;
-  List<List<dynamic>> programstack = [];
+//  List<List<dynamic>> programstack = [];
   List<dynamic> returnValues = [];
   ASTNode _current;
   
   ASTNode get current => _current;
   
   Runner(this.program) {
-    programstack.add([new MethodCall.main(["streng argument til main"])]);
+//    programstack.add([new MethodCall.main(["streng argument til main"])]);
     program.classDeclarations.values.forEach(loadClass);
   }
   
   void loadClass(ClassDecl clazz) {
-    environment.addScope();
-    List<Identifier> initialValues = new List<Identifier>();
-    clazz.staticVariables.forEach((variable) {
-      if(variable.initializer != null){
-        Identifier id = new Identifier(variable.name);
-        environment.newVariable(id, _eval(variable.initializer));
-        initialValues.add(id);
-      }
-    });
-    ClassEnv static = environment.newClassInstance(clazz, initialValues, true);
+    environment.addBlockScope(clazz.staticVariables);
+    //TODO extract functionality for step-by-step view of static variable evaluation
+    while(!environment.isDone){
+      var stat = environment.popStatement();
+      _eval(stat);
+    }
+        
+    ClassScope static = environment.newClassInstance(clazz, true);
     environment.popScope();
-    environment.newVariable(new Identifier(clazz.name), static);
+    environment.newStaticClass(static);
   }
     
   void step(){
-    _current = _popStatement();
+    _current = environment.popStatement();
     var result = _eval(current);
-    if(result is EvalTree)
-      programstack[programstack.length-2].insertRange(0, 1, result);
+//    if(result is EvalTree)
+//      programstack[programstack.length-2].insertRange(0, 1, result);
   }
   
   bool isDone(){
-    if(programstack.isEmpty)
-      return true;
-    
-    return programstack.every((s) => s.isEmpty);
+    return environment.isDone;
   }
   
-  dynamic _popStatement(){
-    //execution complete
-    if(programstack.isEmpty)
-      return null;
-    //if no more statement in current scope, remove it
-    if(programstack.last.isEmpty){
-      _popScope();
-      return _popStatement();      
-    }
-    
-    return programstack.last.removeAt(0);
-  }
+//  dynamic _popStatement(){
+//    //execution complete
+//    if(programstack.isEmpty)
+//      return null;
+//    //if no more statement in current scope, remove it
+//    if(programstack.last.isEmpty){
+//      _popScope();
+//      return _popStatement();      
+//    }
+//    
+//    return programstack.last.removeAt(0);
+//  }
   
-  void _newScope(List<ASTNode> statements){
-    programstack.addLast(statements);
-    environment.addScope();
-  }
-  
-  void _popScope(){
-    programstack.removeLast();
-    environment.popScope();
-  }
+//  void _newScope(List<ASTNode> statements){
+//    programstack.addLast(statements);
+//    environment.addScope();
+//  }
+//  
+//  void _popScope(){
+//    programstack.removeLast();
+//    environment.popScope();
+//  }
   
   dynamic _eval(statement){
     if(statement is EvalTree)
@@ -142,27 +137,6 @@ class Runner {
       
   }
 
-  bool _checkParamArgTypeMatch(List<Type> parameters, List<dynamic> args) {
-    if(parameters.length != args.length)
-      return false;
-    
-    for(int i = 0; i < parameters.length; i++){
-      Type p = parameters[i];
-      var a = args[i];
-
-      //both primitive
-      if(p.isPrimitive && a is! ClassEnv){
-        if(p.id.toLowerCase() != a.runtimeType.toLowerCase())
-          return false;
-      }
-      //both declared
-      else if(!p.isPrimitive && a is ClassEnv){
-        if(p.id != a.decl.name)
-          return false;
-      }
-    }
-    return true;
-  }
   
 //  _evalMethod(MethodDecl method){
 //    for(dynamic statement in method.body){

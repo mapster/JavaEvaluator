@@ -29,7 +29,7 @@ void step(){
   if(!runner.isDone()){
     runner.step();
     printEnv();
-    query("#stack").text = runner.programstack.toString();
+//    query("#stack").text = runner.programstack.toString();
     selectCurrent();
   }
 
@@ -65,7 +65,7 @@ postSourceToJsonService(String data){
         stepBtn.disabled = false;
         environment.children.clear();
         printEnv();
-        query("#stack").text = runner.programstack.toString();
+//        query("#stack").text = runner.programstack.toString();
       }
   });
   
@@ -84,20 +84,37 @@ void printEnv(){
     return val;
   }).toList();
 
-  HeadingElement hAssigns = new HeadingElement.h3();
-  hAssigns.text = "Assignments";
-  DivElement assigns = new DivElement();
-  assigns.children = runner.environment.assignments.mappedBy((Map<Identifier, int> map){
-    DivElement scope = new DivElement();
-    scope.children = map.keys.mappedBy((key){
+  HeadingElement hStatic= new HeadingElement.h3();
+  hStatic.text = "Static Context";
+  DivElement staticContext = new DivElement();
+  staticContext.children = runner.environment.staticContext.assignments.keys.mappedBy((Identifier scID) {
+    ClassScope sc = runner.environment.values[runner.environment.staticContext.lookUp(scID)];
+    DivElement clazz = new DivElement();
+    HeadingElement name = new HeadingElement.h4();
+    name.text = sc.clazz.name;
+    clazz.children.add(name);
+    print(sc.assignments.length);
+    clazz.children.addAll(sc.assignments.keys.mappedBy((Identifier id){
       DivElement assign = new DivElement();
-      assign.text = "$key: ${map[key]}";
+      assign.text = "$id: ${sc.assignments[id]}";
       return assign;
-    }).toList();
-    return scope;
+    }).toList());
+    return clazz;
   }).toList();
+//  HeadingElement hAssigns = new HeadingElement.h3();
+//  hAssigns.text = "Assignments";
+//  DivElement assigns = new DivElement();
+//  assigns.children = runner.environment.assignments.mappedBy((Map<Identifier, int> map){
+//    DivElement scope = new DivElement();
+//    scope.children = map.keys.mappedBy((key){
+//      DivElement assign = new DivElement();
+//      assign.text = "$key: ${map[key]}";
+//      return assign;
+//    }).toList();
+//    return scope;
+//  }).toList();
 
-  environment.children = [hValues, values, hAssigns, assigns];
+  environment.children = [hValues, values, hStatic, staticContext];
 }
 
 //void drawArrow(Pos p1, Pos p2, num width){
