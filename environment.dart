@@ -12,6 +12,7 @@ class Environment {
   Scope staticContext = new Scope.block([]);
   List<ClassScope> contextStack = [];
   ClassScope get currentContext => contextStack.last;
+  Scope get currentScope => currentContext.currentScope;
   
   dynamic popStatement(){
     while(currentContext.isDone)
@@ -128,6 +129,12 @@ class Environment {
     currentContext.loadMethod(select, args);
   }
   
+  methodReturn(){
+    currentContext.methodReturn();
+//    if(currentContext.isDone)
+//      unloadEnv();
+  }
+  
   bool loadEnv(Scope env){
     if(env is! ClassScope)
       throw "Can only load class scope as primary environment!";
@@ -186,6 +193,8 @@ class Scope {
   final bool isMethod;
   Scope _subscope;
   
+  Scope get currentScope => _subscope != null ? _subscope.currentScope : this; 
+  
   Scope.block(List statements) : isMethod = false { _statements.addAll(statements); }
   Scope.method(List statements) : isMethod = true { _statements.addAll(statements); }
   
@@ -234,12 +243,28 @@ class Scope {
       return false;
     return _statements.isEmpty;
   }
+  
+//  bool methodReturn(){
+//    if(_subscope == null)
+//      return false;
+//
+//    //returned from method
+//    if(_subscope.methodReturn())
+//      return true;
+//      
+//
+//    //Not return from method yet, so remove subscope
+//    _subscope = null;
+//    return isMethod;
+//  }
 }
 
 class ClassScope extends Scope {
   final List<Scope> _subscopes = new List<Scope>();
   final ClassDecl clazz;
   final bool isStatic;
+  
+  Scope get currentScope => _subscopes.last.currentScope;
   
   ClassScope(this.clazz, this.isStatic) : super.block([]){
     if(isStatic){
@@ -268,6 +293,30 @@ class ClassScope extends Scope {
     _subscopes.last.lookUp(variable);    
   }
 
+  methodReturn(){
+    _subscopes.removeLast();    
+  }
+  
+  dynamic popStatement() {
+    if(!super.isDone)
+      return super.popStatement();
+    
+    //remove subscopes untill either all are removed or one has statements
+    while(!_subscopes.isEmpty && _subscopes.last.isDone)
+      _subscopes.removeLast();
+      
+    return _subscopes.last.popStatement();
+  }
+  
+  bool get isDone {
+    if(_subscopes.any((Scope sc) => !sc.isDone))
+      return false;
+    
+    print(super.isDone);
+    
+    return super.isDone;
+  }
+  
   void loadMethod(Identifier name, List args) {
     List<MethodDecl> methods = isStatic ? clazz.staticMethods : clazz.instanceMethods;
     MethodDecl method = methods.singleMatching((m) => m.name == name.name && _checkParamArgTypeMatch(m.type.parameters, args));

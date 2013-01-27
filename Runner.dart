@@ -28,10 +28,11 @@ class Runner {
   }
     
   void step(){
+    Scope currentScope = environment.currentScope;
     _current = environment.popStatement();
     var result = _eval(current);
-//    if(result is EvalTree)
-//      programstack[programstack.length-2].insertRange(0, 1, result);
+    if(result is EvalTree)
+      currentScope._statements.insertRange(0, 1, result);
   }
   
   bool isDone(){
@@ -145,9 +146,9 @@ class Runner {
     else if(ret.expr is MethodCall)
       throw "don't support method calls as return expressions yet!";
      
-    var toReturn = _eval(ret.expr);
-    _popScope();
-    returnValues.removeLast().method = () => toReturn;    
+    toReturn = _eval(ret.expr);
+    returnValues.removeLast().method = () => toReturn;
+    environment.methodReturn();
   }
 
 }
