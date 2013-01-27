@@ -16,16 +16,15 @@ class Runner {
   }
   
   void loadClass(ClassDecl clazz) {
-    environment.addBlockScope(clazz.staticVariables);
+    ClassScope staticClass = environment.newClassInstance(clazz, true);
+    environment.loadEnv(staticClass);
+    
     //TODO extract functionality for step-by-step view of static variable evaluation
-    while(!environment.isDone){
-      var stat = environment.popStatement();
+    while(!environment.currentContext.isDone){
+      var stat = environment.currentContext.popStatement();
       _eval(stat);
     }
-        
-    ClassScope static = environment.newClassInstance(clazz, true);
-    environment.popScope();
-    environment.newStaticClass(static);
+    environment.unloadEnv();        
   }
     
   void step(){
@@ -89,60 +88,20 @@ class Runner {
   }
 
   _evalMethodCall(MethodCall call) {
-    //TODO arguments may contain methodcall, fix to support this.
-    List<dynamic> args = call.arguments.mappedBy(_eval).toList(); 
-    
-    if(call.select is MemberSelect){
-      Identifier name = (call.select as MemberSelect).member_id;
-      ClassEnv inst = environment.lookUp((call.select as MemberSelect).owner);
-    
-      MethodDecl method = inst.getMethods().where((MethodDecl m){
-       if(m.name != name.name)
-         return false;
-       
-        return _checkParamArgTypeMatch(m.type.parameters, args);        
-      }).first;
-      
-      //add method body as a new scope
-      _newScope(method.body);
-      
-      for(int i = 0; i < method.parameters.length; i++){
-        Variable v = method.parameters[i];
-        environment.newVariable(new Identifier(v.name), args[i]);
-      }
-      
-      returnValues.addLast(new EvalTree());
-      return returnValues.last;
-    }
-    else throw "Currently only support member select method calls";   
-  }
-  
-  _evalMethodCall2(MethodCall call){
-    //TODO arguments may contain methodcall, fix to support this.
     List<dynamic> args = call.arguments.mappedBy((arg){
-      if(arg is Identifier)
+      if(arg is Identifier || arg is MemberSelect)
         return arg;
-      if(arg is MemberSelect)
+      if(arg is MethodCall);
         throw "Don't support method calls as arguments yet";
-      return _eval(arg);
-    }).toList();
-    
-    
-    if(call.select is MemberSelect){
-      environment.callMemberMethod(call.select, args);
-    }
-    else {
-      environment.callMethod(call.select, args);
-    }
       
-  }
+      return _eval(arg);
+    }).toList(); 
 
-  
-//  _evalMethod(MethodDecl method){
-//    for(dynamic statement in method.body){
-//      _eval(statement);
-//    }
-//  }
+    environment.callMemberMethod(call.select, args);
+    
+    returnValues.addLast(new EvalTree());
+    return returnValues.last;
+  }
   
   _evalBinaryOp(BinaryOp binary) {
     switch(binary.type){
@@ -180,6 +139,12 @@ class Runner {
   }
   
   _evalReturn(Return ret){
+    var toReturn;
+    if(ret.expr is Identifier || ret.expr is MemberSelect)
+      toReturn = ret.expr;
+    else if(ret.expr is MethodCall)
+      throw "don't support method calls as return expressions yet!";
+     
     var toReturn = _eval(ret.expr);
     _popScope();
     returnValues.removeLast().method = () => toReturn;    

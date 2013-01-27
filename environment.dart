@@ -5,13 +5,13 @@ class Environment {
   final Map<Address, dynamic> values = new Map<Address, dynamic>();
 //  final List<Scope> programstack = [new Scope.block([])];
 //  
-  void popScope(){ contextStack.removeLast(); }
+//  void popScope(){ contextStack.removeLast(); }
   void addBlockScope(statements){ contextStack.addLast(new Scope.block(statements)); }
 //  void addMethod(statements){ programstack.addLast(new Scope.block(statements)); }
 //  
   Scope staticContext = new Scope.block([]);
-  List<Scope> contextStack = [];
-  Scope get currentContext => contextStack.last;
+  List<ClassScope> contextStack = [];
+  ClassScope get currentContext => contextStack.last;
   
   dynamic popStatement(){
     while(currentContext.isDone)
@@ -25,9 +25,9 @@ class Environment {
     return contextStack.every((s) => s.isDone);
   }
   
-  void newStaticClass(ClassScope clazz){
-    staticContext.newVariable(new Identifier(clazz.clazz.name),_newValue(clazz));
-  }
+//  void newStaticClass(ClassScope clazz){
+//    staticContext.newVariable(new Identifier(clazz.clazz.name),_newValue(clazz));
+//  }
   
   void newVariable(Identifier name, [dynamic value = Address.invalid]){
     if(value is ClassScope)
@@ -48,15 +48,21 @@ class Environment {
    */
   //TODO potential mess with primitive values
   ClassScope newClassInstance(ClassDecl clazz, [bool static = false]){
-    List<Variable> variables = static ? clazz.staticVariables : clazz.instanceVariables;
-    Map<Identifier, dynamic> addr = new Map<Identifier, dynamic>();
-    print("new class with: ${variables.length}");
-    variables.forEach((v){
-      Identifier id = new Identifier(v.name);
-      addr[id] = _lookUpAddress(id);
-    });
+    ClassScope scope = new ClassScope(clazz, static);
+    if(static)
+      staticContext.newVariable(new Identifier(clazz.name),_newValue(scope));
     
-    return new ClassScope(clazz, addr, static);
+    return scope;
+    
+//    List<Variable> variables = static ? clazz.staticVariables : clazz.instanceVariables;
+//    Map<Identifier, dynamic> addr = new Map<Identifier, dynamic>();
+//    print("new class with: ${variables.length}");
+//    variables.forEach((v){
+//      Identifier id = new Identifier(v.name);
+//      addr[id] = _lookUpAddress(id);
+//    });
+//    
+//    return new ClassScope(clazz, addr, static);
   }
   
   dynamic _lookUpAddress(variable){
@@ -69,7 +75,7 @@ class Environment {
     if(variable is! Identifier)
       throw "Can't lookup value by using ${variable.runtimeType}";
     
-    //TODO add static context!      
+    //TODO add static context! (may be added now)      
     var val = currentContext.lookUp(variable);
     
     if(val == null){
@@ -113,10 +119,13 @@ class Environment {
 //    return null;
 //  }
 
-  callMemberMethod(MemberSelect select, List<dynamic> args) {
-    ClassScope env = lookUp(select.owner);
-    loadEnv(env);
-    env.loadMethod(select.member_id, args);
+  callMemberMethod(select, List args) {
+    if(select is MemberSelect){
+      ClassScope env = lookUp(select.owner);
+      loadEnv(env);
+      select = select.member_id;
+    }
+    currentContext.loadMethod(select, args);
   }
   
   bool loadEnv(Scope env){
@@ -232,10 +241,10 @@ class ClassScope extends Scope {
   final ClassDecl clazz;
   final bool isStatic;
   
-  ClassScope(this.clazz, Map<Identifier, dynamic> initialValues, this.isStatic) : super.block([]){
-    initialValues.forEach((Identifier id, value){
-      assignments[id] = value;
-    });
+  ClassScope(this.clazz, this.isStatic) : super.block([]){
+    if(isStatic){
+      _statements.addAll(clazz.staticVariables);
+    }
   }
 
   addSubScope(Scope s) => _subscopes.add(s);
@@ -243,6 +252,7 @@ class ClassScope extends Scope {
   void newVariable(Identifier name, [dynamic value = Address.invalid]){
     if(_subscopes.isEmpty)
       super.newVariable(name, value);
+    else
     _subscopes.last.newVariable(name, value);
   }
   
