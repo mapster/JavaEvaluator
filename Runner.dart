@@ -93,19 +93,45 @@ class Runner {
   }
 
   _evalMethodCall(MethodCall call) {
-    List<dynamic> args = call.arguments.mappedBy((arg){
+    List args = new List.from(call.arguments);
+    List evaledArgs = new List();
+    bool methodCall = _vetIkke(args, evaledArgs);
+
+    if(methodCall){
+      return new ArgumentListEvalTree((select) {
+        environment.callMemberMethod(select, evaledArgs.mappedBy((arg){
+          if(arg is EvalTree)
+            return arg.execute();
+          return arg;
+        }).toList());
+        var toReturn = new EvalTree();
+        returnValues.addLast(toReturn);
+        return toReturn;
+      }, call.select, args, evaledArgs, _eval);
+    }
+    else {
+      environment.callMemberMethod(call.select, evaledArgs);
+
+      returnValues.addLast(new EvalTree());
+      return returnValues.last;
+    }
+  }
+  
+  bool _vetIkke(List fromList, List toList){
+    while(!fromList.isEmpty){
+      var arg = fromList.removeAt(0);
       if(arg is Identifier || arg is MemberSelect)
-        return arg;
-      if(arg is MethodCall)
-        throw "Don't support method calls as arguments yet";
-
-      return _eval(arg);
-    }).toList(); 
-
-    environment.callMemberMethod(call.select, args);
-    
-    returnValues.addLast(new EvalTree());
-    return returnValues.last;
+        toList.add(arg);
+      else {
+        var evaledArg = _eval(arg);
+        toList.add(evaledArg);
+        
+        if(evaledArg is EvalTree){
+          return true;
+        }
+      }
+    }
+    return false;
   }
   
   _evalBinaryOp(BinaryOp binary) {
@@ -152,8 +178,6 @@ class Runner {
     var toReturn;
     if(ret.expr is Identifier || ret.expr is MemberSelect)
       toReturn = ret.expr;
-//    else if(ret.expr is MethodCall)
-//      throw "don't support method calls as return expressions yet!";
      
     toReturn = _eval(ret.expr);
     if(toReturn is EvalTree){
@@ -177,16 +201,22 @@ class EvalTree extends ASTNode {
   
   EvalTree([this.method, this.arg1, this.arg2]) : super();
   
-  execute(){
+  dynamic execute(){
     if(arg1 != null){
       var arg1Evaled = arg1;
-      if(arg1 is EvalTree)
+      if(arg1 is EvalTree){
         arg1Evaled = arg1.execute();
+        if(arg1Evaled is EvalTree)
+          return new EvalTree(this.method, arg1Evaled, this.arg2);
+      }
       
       if(arg2 != null){
         var arg2Evaled = arg2;
-        if(arg2 is EvalTree)
+        if(arg2 is EvalTree){
           arg2Evaled = arg2.execute();
+          if(arg2Evaled is EvalTree)
+            return new EvalTree(this.method, arg1Evaled, arg2Evaled);
+        }
         return method(arg1Evaled, arg2Evaled);
       }
       else {
@@ -198,5 +228,42 @@ class EvalTree extends ASTNode {
   
   String toString() {
     return "evalTree [$method, $arg1, $arg2]";
+  }
+}
+
+class ArgumentListEvalTree extends EvalTree {
+  final List args;
+  final List evaledArgs;
+  final evalMethod;
+  ArgumentListEvalTree(method, arg1, this.args, this.evaledArgs, this.evalMethod) : super(method, arg1);
+  
+  dynamic execute(){
+    bool methodCall = false;
+    if(!args.isEmpty)
+     methodCall = _vetIkke(args, evaledArgs);
+    
+    if(methodCall){
+      return new ArgumentListEvalTree(this.method, this.arg1, this.args, this.evaledArgs, this.evalMethod);
+    }
+    else {
+      return super.execute();
+    }
+  }
+  
+  bool _vetIkke(List fromList, List toList){
+    while(!fromList.isEmpty){
+      var arg = fromList.removeAt(0);
+      if(arg is Identifier || arg is MemberSelect)
+        toList.add(arg);
+      else {
+        var evaledArg = evalMethod(arg);
+        toList.add(evaledArg);
+        
+        if(evaledArg is EvalTree){
+          return true;
+        }
+      }
+    }
+    return false;
   }
 }

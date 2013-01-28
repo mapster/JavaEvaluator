@@ -325,6 +325,7 @@ class ClassScope extends Scope {
   
   void loadMethod(Identifier name, List args) {
     List<MethodDecl> methods = isStatic ? clazz.staticMethods : clazz.instanceMethods;
+    print("looking for $name $args");
     MethodDecl method = methods.singleMatching((m) => m.name == name.name && _checkParamArgTypeMatch(m.type.parameters, args));
     addSubScope(new Scope.method(method.body));
     for(int i = 0; i < method.parameters.length; i++){
