@@ -22,7 +22,9 @@ class Runner {
     //TODO extract functionality for step-by-step view of static variable evaluation
     while(!environment.currentContext.isDone){
       var stat = environment.currentContext.popStatement();
-      _eval(stat);
+      var result = _eval(stat);
+      if(result is EvalTree)
+        environment.currentContext._statements.insertRange(0, 1, result);
     }
     environment.unloadEnv();        
   }
@@ -31,8 +33,9 @@ class Runner {
     Scope currentScope = environment.currentScope;
     _current = environment.popStatement();
     var result = _eval(current);
-    if(result is EvalTree)
+    if(result is EvalTree){
       currentScope._statements.insertRange(0, 1, result);
+    }
   }
   
   bool isDone(){
@@ -63,8 +66,9 @@ class Runner {
 //  }
   
   dynamic _eval(statement){
-    if(statement is EvalTree)
+    if(statement is EvalTree){
       return statement.execute();
+    }
 //    else if(statement is MethodDecl)
 //      return _evalMethod(statement);
     else if(statement is Variable)
@@ -92,9 +96,9 @@ class Runner {
     List<dynamic> args = call.arguments.mappedBy((arg){
       if(arg is Identifier || arg is MemberSelect)
         return arg;
-      if(arg is MethodCall);
+      if(arg is MethodCall)
         throw "Don't support method calls as arguments yet";
-      
+
       return _eval(arg);
     }).toList(); 
 
@@ -132,23 +136,36 @@ class Runner {
   }
 
   _evalVariable(Variable variable) {
-    if(variable.initializer != null)
-      environment.newVariable(new Identifier(variable.name), _eval(variable.initializer));
-    else
+    if(variable.initializer == null){
       environment.newVariable(new Identifier(variable.name));
-      
+    }
+    else {
+      var init = _eval(variable.initializer);
+      if(init is EvalTree){
+        return new EvalTree((var arg){environment.newVariable(new Identifier(variable.name), arg);}, init);
+      }
+      else environment.newVariable(new Identifier(variable.name), init);
+    }
   }
   
   _evalReturn(Return ret){
     var toReturn;
     if(ret.expr is Identifier || ret.expr is MemberSelect)
       toReturn = ret.expr;
-    else if(ret.expr is MethodCall)
-      throw "don't support method calls as return expressions yet!";
+//    else if(ret.expr is MethodCall)
+//      throw "don't support method calls as return expressions yet!";
      
     toReturn = _eval(ret.expr);
-    returnValues.removeLast().method = () => toReturn;
-    environment.methodReturn();
+    if(toReturn is EvalTree){
+      returnValues.removeLast().method = () {
+        toReturn.execute();
+        environment.methodReturn();
+      };
+    }
+    else {
+      returnValues.removeLast().method = () => toReturn;
+      environment.methodReturn();
+    }
   }
 
 }
@@ -177,5 +194,9 @@ class EvalTree extends ASTNode {
       }
     }
     return method();
+  }
+  
+  String toString() {
+    return "evalTree [$method, $arg1, $arg2]";
   }
 }

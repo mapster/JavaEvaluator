@@ -41,7 +41,8 @@ class Environment {
     if(value is ClassScope)
       value = _newValue(value);      
     
-    currentContext.assign(name, value);
+    if(!currentContext.assign(name, value))
+      throw "Variable $name not declared in current scope!";
   }
 
   /**
@@ -131,8 +132,6 @@ class Environment {
   
   methodReturn(){
     currentContext.methodReturn();
-//    if(currentContext.isDone)
-//      unloadEnv();
   }
   
   bool loadEnv(Scope env){
@@ -204,25 +203,26 @@ class Scope {
     }
     else {
       assignments[name] = value;
-      print("declaring: $name ${assignments[name] is Address ? " at [${assignments[name]}]" : ""} with value $value of type ${value.runtimeType}");
+      print("declaring: $name ${value is Address ? " at [${value}]" : ""} with value $value of type ${value.runtimeType}");
     }
   }
   
-  void assign(Identifier name, dynamic value){
-    if(_subscope != null){
-      _subscope.newVariable(name, value);
-    }
-    else {
-      if(!assignments.containsKey(name))
-        throw "Variable [${name.name}] is not declared!";
+  bool assign(Identifier name, dynamic value){
+    if(_subscope != null && _subscope.assign(name, value))
+      return true;
+    
+    if(!assignments.containsKey(name))
+      return false;
         
-      assignments[name] = value;  
-    }
+    assignments[name] = value;
+    return true;
   }
   
   dynamic lookUp(Identifier variable){
     if(_subscope != null){
-      return _subscope.lookUp(variable);
+      var val = _subscope.lookUp(variable);
+      if(val != null)
+        return val;
     }
   
     return assignments[variable];
@@ -281,16 +281,21 @@ class ClassScope extends Scope {
     _subscopes.last.newVariable(name, value);
   }
   
-  void assign(Identifier name, dynamic value){
-    if(_subscopes.isEmpty)
-      super.assign(name, value);
-    _subscopes.last.assign(name, value);
+  bool assign(Identifier name, dynamic value){
+    if(!_subscopes.isEmpty && _subscopes.last.assign(name, value))
+        return true;
+    
+    return super.assign(name, value);
   }
   
   dynamic lookUp(Identifier variable){
-    if(_subscopes.isEmpty)
-      return super.lookUp(variable);
-    _subscopes.last.lookUp(variable);    
+    if(!_subscopes.isEmpty){
+      var val = _subscopes.last.lookUp(variable); 
+      if(val != null)
+        return val;
+    }
+    
+    return super.lookUp(variable);
   }
 
   methodReturn(){
@@ -298,21 +303,22 @@ class ClassScope extends Scope {
   }
   
   dynamic popStatement() {
-    if(!super.isDone)
-      return super.popStatement();
-    
     //remove subscopes untill either all are removed or one has statements
     while(!_subscopes.isEmpty && _subscopes.last.isDone)
       _subscopes.removeLast();
-      
-    return _subscopes.last.popStatement();
+    
+    //if there are still subscopes and the last is not done, pop statement
+    if(!_subscopes.isEmpty && !_subscopes.last.isDone)
+      return _subscopes.last.popStatement();
+    
+    //else pop own statement.
+    if(!super.isDone)
+      return super.popStatement();
   }
   
   bool get isDone {
     if(_subscopes.any((Scope sc) => !sc.isDone))
       return false;
-    
-    print(super.isDone);
     
     return super.isDone;
   }
@@ -321,7 +327,6 @@ class ClassScope extends Scope {
     List<MethodDecl> methods = isStatic ? clazz.staticMethods : clazz.instanceMethods;
     MethodDecl method = methods.singleMatching((m) => m.name == name.name && _checkParamArgTypeMatch(m.type.parameters, args));
     addSubScope(new Scope.method(method.body));
-    
     for(int i = 0; i < method.parameters.length; i++){
       newVariable(new Identifier(method.parameters[i].name), args[i]);
     }
@@ -337,7 +342,7 @@ class ClassScope extends Scope {
 
       //both primitive
       if(p.isPrimitive && a is! ClassScope){
-        if(p.id.toLowerCase() != a.runtimeType.toLowerCase())
+        if(p.id.toLowerCase() != "${a.runtimeType}".toLowerCase())
           return false;
       }
       //both declared

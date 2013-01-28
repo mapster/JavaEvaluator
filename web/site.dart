@@ -93,7 +93,6 @@ void printEnv(){
     HeadingElement name = new HeadingElement.h4();
     name.text = sc.clazz.name;
     clazz.children.add(name);
-    print(sc.assignments.length);
     clazz.children.addAll(sc.assignments.keys.mappedBy((Identifier id){
       DivElement assign = new DivElement();
       assign.text = "$id: ${sc.assignments[id]}";

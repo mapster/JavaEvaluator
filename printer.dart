@@ -129,7 +129,6 @@ class Printer {
       els.add(_span("", ")"));
     }
     else if(node is Type){
-      print("$node");
       els = [_span("type${node.isPrimitive ? " keyword" : ""}", "$node")]; 
     }
     else if(node is Variable){
