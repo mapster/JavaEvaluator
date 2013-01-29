@@ -91,8 +91,9 @@ class Printer {
       
       //add the else-block
       if(node.elze != null){
-        div.children.addAll([_keyword("else"), _span("", "{")]);
-        root.children.add(div);
+        DivElement elzeLine = _createLineDiv();
+        elzeLine.children.addAll([_keyword("else"), _span("", "{")]);
+        root.children.add(elzeLine);
         
         DivElement elze = _createIndentDiv();
         node.elze.forEach((e) => _toHtml(e, elze));
@@ -154,6 +155,8 @@ class Printer {
       els.addAll(_toElements(node.expr));
     }
     else if(node is int)
+      els = [_span("literal", "$node")];
+    else if(node is bool)
       els = [_span("literal", "$node")];
     else if(node is String)
       els = [_span("literal", "\"$node\"")];

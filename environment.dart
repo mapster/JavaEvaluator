@@ -6,7 +6,7 @@ class Environment {
 //  final List<Scope> programstack = [new Scope.block([])];
 //  
 //  void popScope(){ contextStack.removeLast(); }
-  void addBlockScope(statements){ contextStack.addLast(new Scope.block(statements)); }
+  void addBlockScope(statements) => currentContext.addSubBlock(new Scope.block(statements));
 //  void addMethod(statements){ programstack.addLast(new Scope.block(statements)); }
 //  
   Scope staticContext = new Scope.block([]);
@@ -250,6 +250,13 @@ class Scope {
     return _statements.isEmpty;
   }
   
+  void addSubScope(Scope s){
+    if(_subscope != null)
+      _subscope.addSubScope(s);
+    else
+      _subscope = s;
+  }
+  
 //  bool methodReturn(){
 //    if(_subscope == null)
 //      return false;
@@ -285,6 +292,7 @@ class ClassScope extends Scope {
   
 
   addSubScope(Scope s) => _subscopes.add(s);
+  addSubBlock(Scope s) => _subscopes.last.addSubScope(s);
   
   void newVariable(Identifier name, [dynamic value = Address.invalid]){
     if(_subscopes.isEmpty)

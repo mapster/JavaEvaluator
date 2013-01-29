@@ -56,6 +56,8 @@ class Runner {
       return environment.lookUp(statement);
     else if(statement is String)
       return statement;
+    else if(statement is bool)
+      return statement;
     else if(statement is Return)
       return _evalReturn(statement);
     else throw "Statement type not supported yet: ${statement.runtimeType} '$statement'";
@@ -82,11 +84,22 @@ class Runner {
   }
 
   _evalIf(If ifStat){
-    if(_eval(ifStat.condition)){
-      _newScope(ifStat.then);
+    var cond = _eval(ifStat.condition);
+    if(cond is EvalTree){
+      return new EvalTree(ifStat, this, (var condition){
+        if(condition)
+          environment.addBlockScope(ifStat.then);
+        else if(ifStat.elze != null){
+          environment.addBlockScope(ifStat.elze);      
+        }
+      }, [cond]);
+    }
+    
+    if(cond){
+      environment.addBlockScope(ifStat.then);
     }
     else if(ifStat.elze != null){
-      _newScope(ifStat.elze);      
+      environment.addBlockScope(ifStat.elze);      
     }
   }
   

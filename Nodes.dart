@@ -170,7 +170,7 @@ class Assignment extends ASTNode {
 }
 
 class If extends ASTNode {
-  final ASTNode condition;
+  final dynamic condition;
   final List<ASTNode> then;
   final List<ASTNode> elze;
   

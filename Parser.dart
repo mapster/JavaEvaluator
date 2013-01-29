@@ -41,7 +41,7 @@ class Program {
   parseObject(Map json){
     if(json == null)
       return;
-    
+    //TODO add support for block node
     switch(json['NODE_TYPE']){
       case 'class':
         return parseClass(json);
@@ -74,7 +74,9 @@ class Program {
 
   parseMethodCall(json) => new MethodCall.fromJson(json, parseObject(json['select']), json['arguments'].mappedBy(parseObject).toList());
 
-  parseIf(json) => new If.fromJson(json, parseObject(json['condition']), json['then']['NODE_TYPE'] == 'block' ? json['then']['statements'].mappedBy(parseObject).toList() : [parseObject(json['then'])]);
+  parseIf(json) => new If.fromJson(json, parseObject(json['condition']), 
+                    json['then']['NODE_TYPE'] == 'block' ? json['then']['statements'].mappedBy(parseObject).toList() : [parseObject(json['then'])],
+                    json['else'] == null ? null : (json['else']['NODE_TYPE'] == 'block' ? json['else']['statements'].mappedBy(parseObject).toList() : [parseObject(json['then'])]));
 
   parseLiteral(json) {
     switch(json['type']){
@@ -82,6 +84,8 @@ class Program {
         return int.parse(json['value']);
       case 'STRING_LITERAL':
         return json['value'];
+      case 'BOOLEAN_LITERAL':
+        return json['value'] == 'true';
       default:
         throw "Literal type not supported yet: ${json['type']}";
     }
@@ -104,8 +108,12 @@ class Program {
     this.classDeclarations[clazz.name] = clazz;
     return clazz;  
   }
+
+  Variable parseVar(Map json) {
+    return new Variable.fromJson(json, new Type.fromJson(json['type']), parseObject(json['initializer']));
+  }
   
-  Variable parseVar(Map json) => new Variable.fromJson(json, new Type.fromJson(json['type']), parseObject(json['initializer']));
+//  Variable parseVar(Map json) => new Variable.fromJson(json, new Type.fromJson(json['type']), parseObject(json['initializer']));
   
 //  parseType(Map json){
 //    switch(json['NODE_TYPE']){
