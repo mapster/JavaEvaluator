@@ -6,9 +6,9 @@ class ASTNode {
   final int startPos;
   final int endPos;
   final List<String> modifiers;
-  final int nodeId = _counter++;
+  int nodeId = _counter++;
   
-  const ASTNode([this.startPos, this.endPos, this.modifiers]);
+  ASTNode([this.startPos, this.endPos, this.modifiers]);
     
   ASTNode.fromJson(Map json) : this.startPos = json['startPos'], this.endPos = json['endPos'], this.modifiers = []{
     Map modifiersJson = json['modifiers']; 
@@ -46,11 +46,11 @@ class Type extends ASTNode {
   final bool isPrimitive;
   
   Type.fromJson(Map json) : this.id = json['value'], this.isPrimitive = (json['NODE_TYPE'] == "primitive"), super.fromJson(json);
-  const Type.primitive(this.id) : this.isPrimitive = true, super();
-  const Type.declared(this.id) : this.isPrimitive = false, super();
+  Type.primitive(this.id) : this.isPrimitive = true, super();
+  Type.declared(this.id) : this.isPrimitive = false, super();
   
-  static const Type VOID = const Type.primitive("VOID");
-  static const Type STRING = const Type.declared("String");
+  static final Type VOID = new Type.primitive("VOID");
+  static final Type STRING = new Type.declared("String");
   
   String toString(){
     String r = "$id";
@@ -73,7 +73,7 @@ class MethodType {
   
   const MethodType(this.returnType, this.parameters);
   
-  static const MethodType main = const MethodType(Type.VOID, const [Type.STRING]);
+  static final MethodType main = new MethodType(Type.VOID, [Type.STRING]);
   
   String toString() => "$parameters -> $returnType";
   
@@ -131,10 +131,10 @@ class MethodCall extends ASTNode {
   final ASTNode select;
   final List<dynamic> arguments;
   
-  const MethodCall(this.select, this.arguments, [int startPos, int endPos]) : super(startPos, endPos);
+  MethodCall(this.select, this.arguments, [int startPos, int endPos]) : super(startPos, endPos);
   MethodCall.fromJson(Map json, this.select, this.arguments) : super.fromJson(json);
   
-  MethodCall.main(this.arguments) : super(0,0), this.select = new MemberSelect("main", const Identifier("Mains"));
+  MethodCall.main(this.arguments) : super(0,0), this.select = new MemberSelect("main", new Identifier("Mains"));
   
   String toString() => "$select()"; 
 }
@@ -144,7 +144,7 @@ class Variable extends ASTNode {
   final Type type;
   final initializer;
   
-  const Variable(this.name, this.type, this.initializer, [int startPos, int endPos, List<String> modifiers]) : super(startPos, endPos, modifiers);
+  Variable(this.name, this.type, this.initializer, [int startPos, int endPos, List<String> modifiers]) : super(startPos, endPos, modifiers);
   Variable.fromJson(Map json, this.type, this.initializer) : name = json['name'], super.fromJson(json);
   
   int get hashCode => 17 * 37 + name.hashCode; 
@@ -163,7 +163,7 @@ class Assignment extends ASTNode {
   final Identifier id;
   final expr;
 
-  const Assignment(this.id, this.expr, [int startPos, int endPos]) : super(startPos, endPos);
+  Assignment(this.id, this.expr, [int startPos, int endPos]) : super(startPos, endPos);
   Assignment.fromJson(Map json, this.id, this.expr) : super.fromJson(json);
   
   String toString() => "$id = $expr";
@@ -184,7 +184,7 @@ class BinaryOp extends ASTNode {
   final left;
   final right;
   
-  const BinaryOp(this.type, this.left, this.right, [int startPos, int endPos]) : super(startPos, endPos);
+  BinaryOp(this.type, this.left, this.right, [int startPos, int endPos]) : super(startPos, endPos);
   BinaryOp.fromJson(Map json, this.left, this.right) : this.type = json['type'], super.fromJson(json);
   
   bool operator==(other){
@@ -219,7 +219,7 @@ class MemberSelect extends ASTNode {
 class Identifier extends ASTNode {
   final String name;
   
-  const Identifier(this.name, [int startPos, int endPos]) : super(startPos, endPos);
+  Identifier(this.name, [int startPos, int endPos]) : super(startPos, endPos);
   Identifier.fromJson(Map json) : name = json['value'], super.fromJson(json);
   
   int get hashCode => 17 * 37 + name.hashCode; 
