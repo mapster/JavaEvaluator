@@ -277,6 +277,12 @@ class ClassScope extends Scope {
       _statements.addAll(clazz.staticVariables);
     }
   }
+  
+  String toString() {
+    var local = super.toString();
+    return "$local${_subscopes.isEmpty ? "" : ", ${_subscopes.reduce("", (r, e) => "$r, $e")}"}";
+  }
+  
 
   addSubScope(Scope s) => _subscopes.add(s);
   
