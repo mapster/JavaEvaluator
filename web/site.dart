@@ -29,7 +29,7 @@ void step(){
   if(!runner.isDone()){
     runner.step();
     printEnv();
-//    query("#stack").text = runner.programstack.toString();
+    query("#stack").text = runner.environment.toString();
     selectCurrent();
   }
 
@@ -65,7 +65,7 @@ postSourceToJsonService(String data){
         stepBtn.disabled = false;
         environment.children.clear();
         printEnv();
-//        query("#stack").text = runner.programstack.toString();
+        query("#stack").text = runner.environment.toString();
       }
   });
   

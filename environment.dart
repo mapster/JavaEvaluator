@@ -26,6 +26,7 @@ class Environment {
     return contextStack.every((s) => s.isDone);
   }
   
+  String toString() => "$contextStack";
 //  void newStaticClass(ClassScope clazz){
 //    staticContext.newVariable(new Identifier(clazz.clazz.name),_newValue(clazz));
 //  }
@@ -197,6 +198,11 @@ class Scope {
   Scope.block(List statements) : isMethod = false { _statements.addAll(statements); }
   Scope.method(List statements) : isMethod = true { _statements.addAll(statements); }
   
+  String toString() {
+    var local = "[${_statements.reduce("", (prev,e) => "$e${prev.length > 0 ? "," : ""} $prev")}]";
+    return "$local${_subscope != null ? ", $_subscope" : ""}";
+  }
+  
   void newVariable(Identifier name, [dynamic value = Address.invalid]){
     if(_subscope != null){
         _subscope.newVariable(name, value);
@@ -264,7 +270,7 @@ class ClassScope extends Scope {
   final ClassDecl clazz;
   final bool isStatic;
   
-  Scope get currentScope => _subscopes.last.currentScope;
+  Scope get currentScope => _subscopes.isEmpty ? this : _subscopes.last.currentScope;
   
   ClassScope(this.clazz, this.isStatic) : super.block([]){
     if(isStatic){
@@ -326,6 +332,7 @@ class ClassScope extends Scope {
   void loadMethod(Identifier name, List args) {
     List<MethodDecl> methods = isStatic ? clazz.staticMethods : clazz.instanceMethods;
     print("looking for $name $args");
+
     MethodDecl method = methods.singleMatching((m) => m.name == name.name && _checkParamArgTypeMatch(m.type.parameters, args));
     addSubScope(new Scope.method(method.body));
     for(int i = 0; i < method.parameters.length; i++){

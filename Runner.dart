@@ -20,20 +20,19 @@ class Runner {
     environment.loadEnv(staticClass);
     
     //TODO extract functionality for step-by-step view of static variable evaluation
-    while(!environment.currentContext.isDone){
-      var stat = environment.currentContext.popStatement();
-      var result = _eval(stat);
-      if(result is EvalTree)
-        environment.currentContext._statements.insertRange(0, 1, result);
-    }
-    environment.unloadEnv();        
+//    while(!environment.isDone){
+//      step();
+//    }
+//    environment.unloadEnv();        
   }
     
   void step(){
-    Scope currentScope = environment.currentScope;
     _current = environment.popStatement();
+    print("step: $current");
+    Scope currentScope = environment.currentScope;
     var result = _eval(current);
     if(result is EvalTree){
+      print(currentScope.runtimeType);
       currentScope._statements.insertRange(0, 1, result);
     }
   }
@@ -69,8 +68,6 @@ class Runner {
     if(statement is EvalTree){
       return statement.execute();
     }
-//    else if(statement is MethodDecl)
-//      return _evalMethod(statement);
     else if(statement is Variable)
       return _evalVariable(statement);
     else if(statement is MethodCall)
@@ -93,45 +90,15 @@ class Runner {
   }
 
   _evalMethodCall(MethodCall call) {
-    List args = new List.from(call.arguments);
     List evaledArgs = new List();
-    bool methodCall = _vetIkke(args, evaledArgs);
+    EvalTree ret = new ArgumentListEvalTree(call, (select){
+      environment.callMemberMethod(select, evaledArgs);
+      var toReturn = new EvalTree(null);
+      returnValues.addLast(toReturn);
+      return toReturn;
+    }, call.select, new List.from(call.arguments), evaledArgs, _eval);
 
-    if(methodCall){
-      return new ArgumentListEvalTree((select) {
-        environment.callMemberMethod(select, evaledArgs.mappedBy((arg){
-          if(arg is EvalTree)
-            return arg.execute();
-          return arg;
-        }).toList());
-        var toReturn = new EvalTree();
-        returnValues.addLast(toReturn);
-        return toReturn;
-      }, call.select, args, evaledArgs, _eval);
-    }
-    else {
-      environment.callMemberMethod(call.select, evaledArgs);
-
-      returnValues.addLast(new EvalTree());
-      return returnValues.last;
-    }
-  }
-  
-  bool _vetIkke(List fromList, List toList){
-    while(!fromList.isEmpty){
-      var arg = fromList.removeAt(0);
-      if(arg is Identifier || arg is MemberSelect)
-        toList.add(arg);
-      else {
-        var evaledArg = _eval(arg);
-        toList.add(evaledArg);
-        
-        if(evaledArg is EvalTree){
-          return true;
-        }
-      }
-    }
-    return false;
+    return ret.execute();
   }
   
   _evalBinaryOp(BinaryOp binary) {
@@ -155,7 +122,7 @@ class Runner {
   _evalAssignment(Assignment assign) {
     var expr = _eval(assign.expr);
     if(expr is EvalTree){
-      return new EvalTree((arg1){environment.assign(assign.id, arg1);}, expr);
+      return new EvalTree(assign, (arg1){environment.assign(assign.id, arg1);}, expr);
     }
 
     environment.assign(assign.id, expr);
@@ -168,7 +135,7 @@ class Runner {
     else {
       var init = _eval(variable.initializer);
       if(init is EvalTree){
-        return new EvalTree((var arg){environment.newVariable(new Identifier(variable.name), arg);}, init);
+        return new EvalTree(variable, (var arg){environment.newVariable(new Identifier(variable.name), arg);}, init);
       }
       else environment.newVariable(new Identifier(variable.name), init);
     }
@@ -197,9 +164,16 @@ class Runner {
 class EvalTree extends ASTNode {
   final arg1;
   final arg2;
-  var method;
+  var _method;
+  final origExpr;
   
-  EvalTree([this.method, this.arg1, this.arg2]) : super();
+  get method => _method;
+  set method(m){
+    print("setting method of returnTo: $m");
+    _method = m;
+  }
+  
+  EvalTree(this.origExpr, [this._method, this.arg1, this.arg2]) : super();
   
   dynamic execute(){
     if(arg1 != null){
@@ -207,7 +181,7 @@ class EvalTree extends ASTNode {
       if(arg1 is EvalTree){
         arg1Evaled = arg1.execute();
         if(arg1Evaled is EvalTree)
-          return new EvalTree(this.method, arg1Evaled, this.arg2);
+          return new EvalTree(origExpr, this.method, arg1Evaled, this.arg2);
       }
       
       if(arg2 != null){
@@ -215,7 +189,7 @@ class EvalTree extends ASTNode {
         if(arg2 is EvalTree){
           arg2Evaled = arg2.execute();
           if(arg2Evaled is EvalTree)
-            return new EvalTree(this.method, arg1Evaled, arg2Evaled);
+            return new EvalTree(origExpr, this.method, arg1Evaled, arg2Evaled);
         }
         return method(arg1Evaled, arg2Evaled);
       }
@@ -227,7 +201,7 @@ class EvalTree extends ASTNode {
   }
   
   String toString() {
-    return "evalTree [$method, $arg1, $arg2]";
+    return "evalTree [$origExpr ${arg1 != null ? ", $arg1" : ""}${arg2 != null ? ", $arg2" : ""}]";
   }
 }
 
@@ -235,35 +209,31 @@ class ArgumentListEvalTree extends EvalTree {
   final List args;
   final List evaledArgs;
   final evalMethod;
-  ArgumentListEvalTree(method, arg1, this.args, this.evaledArgs, this.evalMethod) : super(method, arg1);
+  ArgumentListEvalTree(origExpr, method, arg1, this.args, this.evaledArgs, this.evalMethod) : super(origExpr, method, arg1);
   
   dynamic execute(){
-    bool methodCall = false;
-    if(!args.isEmpty)
-     methodCall = _vetIkke(args, evaledArgs);
-    
-    if(methodCall){
-      return new ArgumentListEvalTree(this.method, this.arg1, this.args, this.evaledArgs, this.evalMethod);
-    }
-    else {
-      return super.execute();
-    }
-  }
-  
-  bool _vetIkke(List fromList, List toList){
-    while(!fromList.isEmpty){
-      var arg = fromList.removeAt(0);
-      if(arg is Identifier || arg is MemberSelect)
-        toList.add(arg);
+    //evaluate arguments
+    if(!args.isEmpty){
+      var arg = args.first;
+      if(arg is Identifier || arg is MemberSelect){
+        evaledArgs.addLast(arg);
+        args.removeAt(0);
+      }
       else {
         var evaledArg = evalMethod(arg);
-        toList.add(evaledArg);
-        
-        if(evaledArg is EvalTree){
-          return true;
+        if(evaledArg is EvalTree)
+          args[0] = evaledArg;
+        else {
+          evaledArgs.addLast(evaledArg);
+          args.removeAt(0);
         }
       }
     }
-    return false;
+    
+    //check if there still are arguments not finished evaluating
+    if(!args.isEmpty){
+      return this;
+    }
+    return super.execute();
   }
 }
