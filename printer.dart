@@ -120,11 +120,16 @@ class Printer {
       els.add(_span("op", " = "));
       els.addAll(_toElements(node.expr));
     }
-    else if(node is Identifier)
-      els = [_span("id", node.name)];
+    else if(node is Identifier){
+      SpanElement el = _span("id", node.name);
+      el.attributes['id'] = "node${node.nodeId}";
+      els = [el];
+    }
     else if(node is MethodCall){
       MethodCall call = node;
-      els = [_span("call", "${call.select}"), _span("", "(")];
+      SpanElement el = _span("call", "${call.select}");
+      el.attributes['id'] = "node${node.nodeId}";
+      els = [el, _span("", "(")];
       els.addAll(call.arguments.mappedBy(_toElements).reduce(new List<Element>(), _addSeparators));
       els.add(_span("", ")"));
     }

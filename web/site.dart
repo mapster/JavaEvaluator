@@ -5,7 +5,7 @@ import 'dart:json';
 import 'dart:math';
 import '../Parser.dart';
 
-String exampleSource = "class Mains { public static void main(String args){ int x = 3; x = 5; x = 10; x = 21; if(x == 21) x = 22; } }";
+String exampleSource = "class StaticTest { static int tall0; static int tall2 = 4; static int tall3 = funksjon(fem()); static int tall4 = funksjon3(fem(), funksjon2(fem()), 3); static int funksjon(int tall){ tall0 = tall; return funksjon2(9); }static int funksjon2(int tall){ tall2 = 1; return tall; } static int fem(){ return 5; } static int funksjon3(int tall, int tall2, int tall3){ return tall2;}}";
 String toJsonUrl = "/tojson";
 
 DivElement java = query("#java");
@@ -42,6 +42,7 @@ selectCurrent(){
   if(prevs != null)
     prevs.forEach((e) => e.classes.remove("current"));
   
+  print("current node= ${runner.current.nodeId}");
   Element current = query("#node${runner.current.nodeId}");
   if(current != null)
     current.classes.add("current");

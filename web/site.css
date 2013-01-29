@@ -31,6 +31,6 @@ div.arrow {
   background-color: blue;
 }
 
-div.current {
+.current {
   background-color: red;  
 }
