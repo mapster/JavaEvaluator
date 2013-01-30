@@ -78,18 +78,7 @@ class Program {
                     json['then']['NODE_TYPE'] == 'block' ? json['then']['statements'].mappedBy(parseObject).toList() : [parseObject(json['then'])],
                     json['else'] == null ? null : (json['else']['NODE_TYPE'] == 'block' ? json['else']['statements'].mappedBy(parseObject).toList() : [parseObject(json['then'])]));
 
-  parseLiteral(json) {
-    switch(json['type']){
-      case 'INT_LITERAL':
-        return int.parse(json['value']);
-      case 'STRING_LITERAL':
-        return json['value'];
-      case 'BOOLEAN_LITERAL':
-        return json['value'] == 'true';
-      default:
-        throw "Literal type not supported yet: ${json['type']}";
-    }
-  }
+  parseLiteral(json) =>  new Literal.fromJson(json);
 
   parseAssignment(Map json) => new Assignment.fromJson(json, parseObject(json['variable']), parseObject(json['expr']));
 

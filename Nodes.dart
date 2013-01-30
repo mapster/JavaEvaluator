@@ -244,3 +244,23 @@ class Return extends ASTNode {
   
   String toString() => "return $expr"; 
 }
+
+class Literal extends ASTNode {
+  final String type;
+  dynamic get value => _value;  
+  dynamic _value;
+  
+  Literal.fromJson(Map json) : this.type = json['type'], super.fromJson(json) {
+    switch(type){
+      case 'INT_LITERAL':
+        _value = int.parse(json['value']); break;
+      case 'STRING_LITERAL':
+        _value = json['value']; break;
+      case 'BOOLEAN_LITERAL':
+        _value = json['value'] == 'true'; break;
+      default:
+        throw "Literal type not supported yet: ${type}";
+    }
+  }
+  
+}

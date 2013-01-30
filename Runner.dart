@@ -60,6 +60,8 @@ class Runner {
       return statement;
     else if(statement is Return)
       return _evalReturn(statement);
+    else if(statement is Literal)
+      return statement.value;
     else throw "Statement type not supported yet: ${statement.runtimeType} '$statement'";
   }
 

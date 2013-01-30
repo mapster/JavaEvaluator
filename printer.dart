@@ -154,6 +154,11 @@ class Printer {
       els = [_span("keyword", "return ")];
       els.addAll(_toElements(node.expr));
     }
+    else if(node is Literal){
+      SpanElement s =_span("literal", "${node.value}");
+      s.attributes['id'] = "node${node.nodeId}";
+      els = [s];      
+    }
     else if(node is int)
       els = [_span("literal", "$node")];
     else if(node is bool)
