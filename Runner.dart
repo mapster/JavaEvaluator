@@ -64,9 +64,9 @@ class Runner {
   }
 
   _evalMethodCall(MethodCall call) {
-    EvalTree ret = new EvalTree(call, this, (List args){
+    EvalTree ret = new EvalTree(call, this, false, (List args){
       environment.callMemberMethod(call.select, args);
-      var toReturn = new EvalTree(null, this);
+      var toReturn = new EvalTree(null, this, false);
       returnValues.addLast(toReturn);
       return toReturn;
     }, new List.from(call.arguments));
@@ -75,38 +75,39 @@ class Runner {
   }
   
   _evalBinaryOp(BinaryOp binary) {
+    var method;
     switch(binary.type){
       case BinaryOp.EQUAL:
-        return _eval(binary.left) == _eval(binary.right);
+        method = (left, right) => left == right;
+        break;
+      case BinaryOp.PLUS:
+        method = (List args) {
+          if(args[0] is String)
+            return "${args[0]}${args[1]}";
+          return args[0] + args[1];
+        };
+        break;
       default:
         throw "Binary operator not supported yet: ${binary.type}";
     }
+    
+    return new EvalTree(binary, this, true, method, [binary.left, binary.right]).execute();
   }
 
   _evalIf(If ifStat){
-    var cond = _eval(ifStat.condition);
-    if(cond is EvalTree){
-      return new EvalTree(ifStat, this, (var condition){
-        if(condition)
+      return new EvalTree(ifStat, this, true, (List args){
+        if(args[0])
           environment.addBlockScope(ifStat.then);
         else if(ifStat.elze != null){
           environment.addBlockScope(ifStat.elze);      
         }
-      }, [cond]);
-    }
-    
-    if(cond){
-      environment.addBlockScope(ifStat.then);
-    }
-    else if(ifStat.elze != null){
-      environment.addBlockScope(ifStat.elze);      
-    }
+      }, [ifStat.condition]).execute();
   }
   
   _evalAssignment(Assignment assign) {
     var expr = _eval(assign.expr);
     if(expr is EvalTree){
-      return new EvalTree(assign, this, (List args){environment.assign(assign.id, args.first);}, [expr]);
+      return new EvalTree(assign, this, false, (List args){environment.assign(assign.id, args.first);}, [expr]);
     }
 
     environment.assign(assign.id, expr);
@@ -119,7 +120,7 @@ class Runner {
     else {
       var init = _eval(variable.initializer);
       if(init is EvalTree){
-        return new EvalTree(variable, this, (List args){environment.newVariable(new Identifier(variable.name), args.first);}, [init]);
+        return new EvalTree(variable, this, false, (List args){environment.newVariable(new Identifier(variable.name), args.first);}, [init]);
       }
       else environment.newVariable(new Identifier(variable.name), init);
     }
@@ -149,6 +150,7 @@ class Runner {
 }
 
 class EvalTree extends ASTNode {
+  final bool lookUpArguments;
   final List args;
   final List evaledArgs = [];
   final Runner runner;
@@ -161,14 +163,14 @@ class EvalTree extends ASTNode {
     _method = m;
   }
   
-  EvalTree(this.origExpr, this.runner, [this._method, this.args = const []]) : super();
+  EvalTree(this.origExpr, this.runner, this.lookUpArguments, [this._method, this.args = const []]) : super();
   
   dynamic execute(){
     if(origExpr != null)
       runner._current = origExpr;
     //evaluate arguments
     if(!args.isEmpty){
-      if(args.first is Identifier || args.first is MemberSelect){
+      if(!lookUpArguments && (args.first is Identifier || args.first is MemberSelect)){
         evaledArgs.addLast(args.removeAt(0));
       }
       else {
