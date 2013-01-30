@@ -1,186 +1,188 @@
 part of JavaEvaluator;
 
 class Printer {
-  
-  static DivElement _createLineDiv([String text]){
-    DivElement div = new DivElement();
-    div.attributes['class'] = "line";
-    if(?text)
-      div.text = text;
-    return div;
-  }
-  
-  static DivElement _createIndentDiv(){
-    DivElement div = new DivElement();
-    div.attributes['class'] = "indent";
-    return div;
-  }
 
-  static SpanElement _span([String clazz, String text = ""]){
-    SpanElement sp = new SpanElement();
-    sp.attributes['class'] = clazz;
-    sp.text = text;
-    return sp;
-  }
-  
-  static SpanElement _keyword(String keyword) => _span("keyword", keyword);
-  
-  static SpanElement _code(String code){
-    SpanElement sp = _span("code");
-    sp.text = code;
-    return sp;
+  static Element _newElement({int nodeid, String text, bool newLine: false, bool keyword: false, bool indent: false}){
+    Element ele;
+    if(newLine || indent)
+      ele = new DivElement();
+    else 
+      ele = new SpanElement();
+    
+    List classes = [];
+    if(?nodeid)   ele.attributes['id'] = "node$nodeid";
+    if(newLine)   classes.add("line");
+    if(keyword)   classes.add("keyword");
+    if(indent)    classes.add("indent");
+    if(?text)     ele.text = text;
+    if(!classes.isEmpty) ele.attributes['class'] = classes.reduce("", (r, e) => r.isEmpty ? e : "$r $e");
+    
+    return ele;
   }
   
   static Element toHtml(ASTNode node){
     DivElement root = new DivElement();
     root.attributes['id'] = "javasource";
-    _toHtml(node, root);
+    root.children.addAll(_toHtml(node, true));
     return root;
   } 
   
-  
-  static _toHtml(ASTNode astNode, DivElement root){
-    DivElement div = _createLineDiv();
-    div.attributes['id'] = "node${astNode.nodeId}";
-    
-    if(astNode is ClassDecl){
-      ClassDecl node = astNode;
-      
-      div.children.addAll(node.modifiers.mappedBy((e) => "$e ").toList().mappedBy(_keyword).toList());
-      div.children.add(_keyword("class"));
-      div.children.add(_code(" ${node.name} {"));
-      root.children.add(div);
-      
-      DivElement members = _createIndentDiv();
-      node.members.forEach((e) => _toHtml(e, members));
-      
-      root.children.addAll([members, _createLineDiv("}")]);
+  static List<Element> _toHtml(ASTNode astNode, bool newLine){
+    if(astNode is Assignment){
+      return _assignmentToHtml(astNode, newLine);
+    }
+    else if(astNode is BinaryOp){
+      return _binaryOpToHtml(astNode, newLine);
+    }
+    else if(astNode is ClassDecl){
+      return _classToHtml(astNode);
+    }
+    else if(astNode is Identifier){
+      return _identifierToHtml(astNode, newLine);
+    }
+    else if(astNode is If){
+      return _ifToHtml(astNode);
+    }
+    else if(astNode is Literal){
+      return _literalToHtml(astNode, newLine);
+    }
+    else if(astNode is MemberSelect){
+      return _memberSelectToHtml(astNode, newLine);
+    }
+    else if(astNode is MethodCall){
+      return _methodCallToHtml(astNode, newLine);
     }
     else if(astNode is MethodDecl){
-      MethodDecl node = astNode;
-      
-      div.children.addAll(node.modifiers.mappedBy((e) => "$e ").toList().mappedBy(_keyword).toList());
-      div.children.addAll(_toElements(node.type.returnType));
-      
-      div.children.addAll([_span("id", " ${node.name}"), _span("", "(")]);
-      div.children.addAll(node.parameters.mappedBy(_toElements).reduce(new List<Element>(), _addSeparators));
-      div.children.add(_span("", ") {"));
-      root.children.add(div);
-      
-      DivElement body = _createIndentDiv();
-      node.body.forEach((e) => _toHtml(e, body));
-      
-      root.children.addAll([body, _createLineDiv("}")]);
+      return _methodDeclToHtml(astNode, newLine);
     }
-//    else if(astNode is MethodCall){
-//     MethodCall node = astNode;
-//     node.select
-//    }
-    else if(astNode is If){
-      If node = astNode;
-
-      div.children.addAll([_keyword("if"), _span("", "(")]);
-      div.children.addAll(_toElements(node.condition));
-      div.children.add(_span("", "){"));
-      root.children.add(div);
-      
-      //add the then-block
-      DivElement then = _createIndentDiv();
-      node.then.forEach((e) => _toHtml(e, then));
-      root.children.addAll([then, _createLineDiv("}")]);
-      
-      //add the else-block
-      if(node.elze != null){
-        DivElement elzeLine = _createLineDiv();
-        elzeLine.children.addAll([_keyword("else"), _span("", "{")]);
-        root.children.add(elzeLine);
-        
-        DivElement elze = _createIndentDiv();
-        node.elze.forEach((e) => _toHtml(e, elze));
-        root.children.addAll([elze, _createLineDiv("}")]);
-      }
-      
+    else if(astNode is Return){
+      return _returnToHtml(astNode, newLine);
     }
-//    else if(astNode is Assignment){
-//      Assignment assign = astNode;
-//      DivElement div = _createLineDiv();
-//      div.children = "${_toElements(assign.id)} = ${_toElements(assign.expr)};";
-//      root.children.add(div);
-//    }
-    else {
-      div.children = _toElements(astNode);
-      div.children.add(_span("", ";"));
-      root.children.add(div);
+    else if(astNode is Type){
+      return _typeToHtml(astNode, newLine);
+    }
+    else if(astNode is Variable){
+      return _variableToHtml(astNode, newLine);
     }
   }
 
-  static List<Element> _toElements(dynamic node) {
-    List<Element> els;
-    if(node is Assignment){
-      els = _toElements(node.id);
-      els.add(_span("op", " = "));
-      els.addAll(_toElements(node.expr));
-    }
-    else if(node is Identifier){
-      SpanElement el = _span("id", node.name);
-      el.attributes['id'] = "node${node.nodeId}";
-      els = [el];
-    }
-    else if(node is MethodCall){
-      MethodCall call = node;
-      SpanElement el = _span("call", "${call.select}");
-      el.attributes['id'] = "node${node.nodeId}";
-      els = [el, _span("", "(")];
-      els.addAll(call.arguments.mappedBy(_toElements).reduce(new List<Element>(), _addSeparators));
-      els.add(_span("", ")"));
-    }
-    else if(node is Type){
-      els = [_span("type${node.isPrimitive ? " keyword" : ""}", "$node")]; 
-    }
-    else if(node is Variable){
-      els = _toElements(node.type);
-      els.add(_span("id", " ${node.name}"));
-      if(node.initializer != null){
-        els.add(_span("op", " = "));
-        els.addAll(_toElements(node.initializer));
-      }
-    }
-    else if(node is BinaryOp){
-      els = _toElements(node.left);
-      els.add(_span("op", " ${BinaryOp.operatorToString(node.type)} "));
-      els.addAll(_toElements(node.right));
-    }
-    else if(node is Return){
-      els = [_span("keyword", "return ")];
-      els.addAll(_toElements(node.expr));
-    }
-    else if(node is Literal){
-      SpanElement s =_span("literal", "${node.value}");
-      s.attributes['id'] = "node${node.nodeId}";
-      els = [s];      
-    }
-    else if(node is int)
-      els = [_span("literal", "$node")];
-    else if(node is bool)
-      els = [_span("literal", "$node")];
-    else if(node is String)
-      els = [_span("literal", "\"$node\"")];
-    else throw "Not able to print: ${node.runtimeType} : \"${node}\"";
+  static List<Element> _assignmentToHtml(Assignment node, bool newLine) {
+    Element element = _newElement(newLine:newLine, nodeid:node.nodeId);
+    element.children.addAll(_toHtml(node.id, false));
+    element.children.add(_newElement(text:" = "));
+    element.children.addAll(_toHtml(node.expr, false));
+    if(newLine) element.children.add(_newElement(text:";"));
+    return [element];
+  }
+
+  static List<Element> _binaryOpToHtml(BinaryOp node, bool newLine) {
+    Element element = _newElement(newLine: newLine, nodeid: node.nodeId);
+    element.children.addAll(_toHtml(node.left, false));
+    element.children.add(_newElement(text: " ${BinaryOp.operatorToString(node.type)} "));
+    element.children.addAll(_toHtml(node.right, false));
+    if(newLine) element.children.add(_newElement(text:";"));
+    return [element];
+  }
+
+  static List<Element> _classToHtml(ClassDecl node) {
+    DivElement header = _newElement(nodeid: node.nodeId, newLine: true);
+    header.children.addAll(node.modifiers.mappedBy((e) => _newElement(keyword: true, text: "$e ")).toList());
+    header.children.add(_newElement(text: "class", keyword: true));
+    header.children.add(_newElement(text: " ${node.name} {"));
     
-    return els.toList();
+    DivElement body = _newElement(indent: true);
+    body.children = node.members.mappedBy((m) => _toHtml(m, true)).toList().reduce(new List<Element>(), _reduceLists);
+    
+    return [header, body, _newElement(newLine: true, text: "}")];
   }
   
-  static List<Element> _addSeparators(List<Element> list, List<Element> e){
-    if(!list.isEmpty)
-      list.add(_span("", ", "));
-    list.addAll(e);
-    return list;
-  }
+  static List<Element> _identifierToHtml(Identifier node, bool newLine) => 
+      [_newElement(nodeid:node.nodeId, newLine:newLine, text:"${node.name}${newLine ? ";" : ""}")];
   
-  static String reduceList(String reduct, e){
-    if(reduct.isEmpty)
-      return "${_toElements(e)}";
+  static List<Element> _ifToHtml(If node) {
+    DivElement header = _newElement(newLine: true, nodeid: node.nodeId);
+    header.children.addAll([_newElement(text: "if", keyword: true), _newElement(text: "(")]);
+    header.children.addAll(_toHtml(node.condition, false));
+    header.children.add(_newElement(text: ") {"));
+    
+    //the then-block
+    DivElement then = _newElement(indent: true);
+    then.children = node.then.mappedBy((e) => _toHtml(e, true)).toList().reduce(new List<Element>(), _reduceLists);
+    
+    List<Element> ifThen = [header, then, _newElement(text: "}")];
+    if(node.elze == null)
+      return ifThen;
+    
+    //the else-block  
+    DivElement elseHeader = _newElement(newLine: true);
+    elseHeader.children.addAll([_newElement(keyword: true, text: "else"), _newElement(text: " {")]);
+    
+    DivElement elseBody = _newElement(indent: true);
+    elseBody.children = node.elze.mappedBy((e) => _toHtml(e, true)).toList().reduce(new List<Element>(), _reduceLists);
 
-    return "$reduct, ${_toElements(e)}";
+    ifThen.addAll([elseHeader, elseBody, _newElement(newLine:true, text:"}")]);
+    return ifThen;
   }
+  
+  static List<Element> _literalToHtml(Literal node, bool newLine) => [_newElement(newLine:newLine, nodeid:node.nodeId, text:"${node.value}")];
+
+  static List<Element> _memberSelectToHtml(MemberSelect node, bool newLine) => [_newElement(newLine:newLine, nodeid:node.nodeId, text:node.toString())];
+
+  static List<Element> _methodCallToHtml(MethodCall node, bool newLine) {
+    List<Element> call = new List<Element>();
+    call.add(_newElement(nodeid:node.nodeId, newLine:newLine, text:"${node.select.toString()}("));
+    call.addAll(node.arguments.mappedBy((arg) => _toHtml(arg, false)).toList().reduce(new List<Element>(), _reduceCommaSeparated));    
+    call.add(_newElement(text:")"));
+    if(newLine) call.add(_newElement(text:";"));
+    return call;
+  }
+
+  static List<Element> _methodDeclToHtml(MethodDecl node, bool newLine) {
+    DivElement header = _newElement(newLine:newLine, nodeid:node.nodeId);
+    header.children.addAll(node.modifiers.mappedBy((m) => _newElement(text:"$m ", keyword: true)).toList());
+    header.children.addAll(_toHtml(node.type.returnType, false));
+    header.children.add(_newElement(text:" ${node.name}("));
+    header.children.addAll(node.parameters.mappedBy((p) => _toHtml(p, false)).toList().reduce(new List<Element>(), _reduceCommaSeparated));
+    header.children.add(_newElement(text:") {"));
+    
+    DivElement body = _newElement(indent:true);
+    body.children = node.body.mappedBy((e) => _toHtml(e, true)).toList().reduce(new List<Element>(), _reduceLists);
+    
+    return [header, body, _newElement(newLine:true, text:"}")];
+  }
+
+  static List<Element> _returnToHtml(Return node, bool newLine) {
+    Element element = _newElement(nodeid:node.nodeId, newLine:newLine);
+    element.children.add(_newElement(keyword:true, text:"return "));
+    element.children.addAll(_toHtml(node.expr, false));
+    if(newLine) element.children.add(_newElement(text:";"));
+    return [element];
+  }
+
+  static List<Element> _typeToHtml(Type node, bool newLine) => [_newElement(nodeid:node.nodeId, keyword:node.isPrimitive, text:node.toString())]; 
+
+  static List<Element> _variableToHtml(Variable node, bool newLine) {
+    Element element = _newElement(nodeid:node.nodeId, newLine:newLine);
+    element.children.addAll(_toHtml(node.type, false));
+    element.children.add(_newElement(text:" ${node.name}"));
+    if(node.initializer != null){
+      element.children.add(_newElement(text:" = "));
+      element.children.addAll(_toHtml(node.initializer, false));
+    }
+    if(newLine) element.children.add(_newElement(text:";"));
+    return [element];
+  }
+  
+  static List _reduceCommaSeparated(List r, List e){
+    if(!r.isEmpty) 
+      r.add(_newElement(text:", "));
+    r.addAll(e);
+    return r;
+  }
+  
+  static final _reduceLists = (List r, e) {
+    r.addAll(e);
+    return r;
+  };
+  
 }
