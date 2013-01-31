@@ -5,6 +5,7 @@ class Runner {
   Program program;
   List<dynamic> returnValues = [];
   ASTNode _current;
+  bool _extraStep;
   
   ASTNode get current => _current;
           set current(node) {
@@ -24,6 +25,8 @@ class Runner {
   }
     
   void step(){
+    _extraStep = false;
+    
     var toEval = environment.popStatement();
     _current = toEval;
     if(toEval is EvalTree)
@@ -35,6 +38,9 @@ class Runner {
     if(result is EvalTree){
       currentScope._statements.insertRange(0, 1, result);
     }
+    
+//    if(_extraStep)
+//      step();
   }
   
   bool isDone(){
@@ -72,14 +78,12 @@ class Runner {
   }
 
   _evalMethodCall(MethodCall call) {
-    EvalTree ret = new EvalTree(call, this, false, (List args){
+    return new EvalTree(call, this, false, (List args){
       environment.callMemberMethod(call.select, args);
-      var toReturn = new EvalTree(null, this, false);
+      var toReturn = new EvalTree(call, this, false);
       returnValues.addLast(toReturn);
       return toReturn;
-    }, new List.from(call.arguments));
-
-    return ret.execute();
+    }, new List.from(call.arguments)).execute();
   }
   
   _evalBinaryOp(BinaryOp binary) {
@@ -125,6 +129,7 @@ class Runner {
     return new EvalTree(ret, this, false, (List args){
       returnValues.removeLast().method = (List l) => args.first;
       environment.methodReturn();
+      _extraStep = true;
     }, [ret.expr]).execute();
   }
 }
@@ -158,7 +163,6 @@ class EvalTree extends ASTNode {
           args.removeAt(0);
         }
       }
-      
       //return this since it has now stepped one execution
       return this;
     }
