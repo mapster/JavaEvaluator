@@ -42,7 +42,6 @@ selectCurrent(){
   if(prevs != null)
     prevs.forEach((e) => e.classes.remove("current"));
   
-  print("current node= ${runner.current.nodeId}");
   Element current = query("#node${runner.current.nodeId}");
   if(current != null)
     current.classes.add("current");

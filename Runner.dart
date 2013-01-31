@@ -7,6 +7,12 @@ class Runner {
   ASTNode _current;
   
   ASTNode get current => _current;
+          set current(node) {
+            if(node is EvalTree)
+              _current = node.origExpr;
+            else
+              _current = node;
+          }
   
   Runner(this.program) {
     program.classDeclarations.values.forEach(loadClass);
@@ -23,11 +29,10 @@ class Runner {
     if(toEval is EvalTree)
       _current = toEval.origExpr;
       
-    print("step: $current");
+    print("step: $current - id: ${current.nodeId}");
     Scope currentScope = environment.currentScope;
     var result = _eval(toEval);
     if(result is EvalTree){
-      print(currentScope.runtimeType);
       currentScope._statements.insertRange(0, 1, result);
     }
   }
@@ -37,6 +42,7 @@ class Runner {
   }
   
   dynamic _eval(statement){
+    _current = statement;
     if(statement is EvalTree){
       return statement.execute();
     }
@@ -80,7 +86,7 @@ class Runner {
     var method;
     switch(binary.type){
       case BinaryOp.EQUAL:
-        method = (left, right) => left == right;
+        method = (List args) => args[0] == args[1];
         break;
       case BinaryOp.PLUS:
         method = (List args) {
@@ -106,48 +112,20 @@ class Runner {
       }, [ifStat.condition]).execute();
   }
   
-  _evalAssignment(Assignment assign) {
-    var expr = _eval(assign.expr);
-    if(expr is EvalTree){
-      return new EvalTree(assign, this, false, (List args){environment.assign(assign.id, args.first);}, [expr]);
-    }
-
-    environment.assign(assign.id, expr);
-  }
+  _evalAssignment(Assignment assign) => new EvalTree(assign, this, false, (List args){environment.assign(assign.id, args.first);}, [assign.expr]).execute();
 
   _evalVariable(Variable variable) {
-    if(variable.initializer == null){
-      environment.newVariable(new Identifier(variable.name));
-    }
-    else {
-      var init = _eval(variable.initializer);
-      if(init is EvalTree){
-        return new EvalTree(variable, this, false, (List args){environment.newVariable(new Identifier(variable.name), args.first);}, [init]);
-      }
-      else environment.newVariable(new Identifier(variable.name), init);
-    }
+    if(variable.initializer == null)
+      return new EvalTree(variable, this, false, (List args){environment.newVariable(new Identifier(variable.name));}, []).execute();
+
+    return new EvalTree(variable, this, false, (List args){environment.newVariable(new Identifier(variable.name), args.first);}, [variable.initializer]).execute();
   }
   
   _evalReturn(Return ret){
-    var toReturn;
-    if(ret.expr is Identifier || ret.expr is MemberSelect)
-      toReturn = ret.expr;
-     
-    toReturn = _eval(ret.expr);
-    if(toReturn is EvalTree){
-      returnValues.removeLast().method = (List l) {
-        var ret = toReturn.execute();
-        if(ret is EvalTree)
-          return ret;
-        
-        environment.methodReturn();
-        return ret;
-      };
-    }
-    else {
-      returnValues.removeLast().method = (List l) => toReturn;
+    return new EvalTree(ret, this, false, (List args){
+      returnValues.removeLast().method = (List l) => args.first;
       environment.methodReturn();
-    }
+    }, [ret.expr]).execute();
   }
 }
 
@@ -160,20 +138,16 @@ class EvalTree extends ASTNode {
   final origExpr;
   
   get method => _method;
-  set method(m){
-    print("setting method of returnTo: $m");
-    _method = m;
-  }
+  set method(m) => _method = m;
   
   EvalTree(this.origExpr, this.runner, this.lookUpArguments, [this._method, this.args = const []]) : super();
   
   dynamic execute(){
-    if(origExpr != null)
-      runner._current = origExpr;
     //evaluate arguments
     if(!args.isEmpty){
-      if(!lookUpArguments && (args.first is Identifier || args.first is MemberSelect)){
+      if(!lookUpArguments && (args.first is Identifier || args.first is MemberSelect) && !runner.environment.isPrimitive(args.first)){
         evaledArgs.addLast(args.removeAt(0));
+        runner.current = evaledArgs.last;
       }
       else {
         var evaledArg = runner._eval(args.first);
@@ -188,6 +162,9 @@ class EvalTree extends ASTNode {
       //return this since it has now stepped one execution
       return this;
     }
+    
+    if(origExpr != null)
+      runner._current = origExpr;
     
     return _method(evaledArgs);
   }

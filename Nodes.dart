@@ -65,6 +65,20 @@ class Type extends ASTNode {
 
     return id == other.id && isPrimitive == other.isPrimitive;
   }
+  
+  bool sameType(other){
+    if(other is Type)
+      return this == other;
+    else if(other is ClassScope){
+      return !this.isPrimitive && id == other.clazz.name;
+    }
+    else if(other is Literal){
+      return this.isPrimitive && id.toLowerCase() == other.value;
+    }
+    else{
+      return this.isPrimitive && id.toLowerCase() == other.runtimeType.toString();
+    }
+  }
 }
 
 class MethodType {
@@ -246,12 +260,28 @@ class Return extends ASTNode {
 }
 
 class Literal extends ASTNode {
-  final String type;
+  final String _type;
   dynamic get value => _value;  
   dynamic _value;
   
-  Literal.fromJson(Map json) : this.type = json['type'], super.fromJson(json) {
-    switch(type){
+  String get type {
+    switch(_type){
+      case 'INT_LITERAL':
+        return 'int';
+      case 'STRING_LITERAL':
+        return 'String';
+    }
+  }
+  
+  String toString() {
+    if(_type == 'STRING_LITERAL')
+      return "\"$value\"";
+    else
+      return "$value";
+  }
+  
+  Literal.fromJson(Map json) : this._type = json['type'], super.fromJson(json) {
+    switch(_type){
       case 'INT_LITERAL':
         _value = int.parse(json['value']); break;
       case 'STRING_LITERAL':
@@ -259,8 +289,7 @@ class Literal extends ASTNode {
       case 'BOOLEAN_LITERAL':
         _value = json['value'] == 'true'; break;
       default:
-        throw "Literal type not supported yet: ${type}";
+        throw "Literal type not supported yet: ${_type}";
     }
   }
-  
 }

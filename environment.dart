@@ -3,16 +3,13 @@ part of JavaEvaluator;
 class Environment {
   int _counter = 0;
   final Map<Address, dynamic> values = new Map<Address, dynamic>();
-//  final List<Scope> programstack = [new Scope.block([])];
-//  
-//  void popScope(){ contextStack.removeLast(); }
-  void addBlockScope(statements) => currentContext.addSubBlock(new Scope.block(statements));
-//  void addMethod(statements){ programstack.addLast(new Scope.block(statements)); }
-//  
   Scope staticContext = new Scope.block([]);
   List<ClassScope> contextStack = [];
+  
   ClassScope get currentContext => contextStack.last;
   Scope get currentScope => currentContext.currentScope;
+  
+  void addBlockScope(statements) => currentContext.addSubBlock(new Scope.block(statements));
   
   dynamic popStatement(){
     while(currentContext.isDone)
@@ -27,9 +24,6 @@ class Environment {
   }
   
   String toString() => "$contextStack";
-//  void newStaticClass(ClassScope clazz){
-//    staticContext.newVariable(new Identifier(clazz.clazz.name),_newValue(clazz));
-//  }
   
   void newVariable(Identifier name, [dynamic value = Address.invalid]){
     if(value is ClassScope)
@@ -56,16 +50,6 @@ class Environment {
       staticContext.newVariable(new Identifier(clazz.name),_newValue(scope));
     
     return scope;
-    
-//    List<Variable> variables = static ? clazz.staticVariables : clazz.instanceVariables;
-//    Map<Identifier, dynamic> addr = new Map<Identifier, dynamic>();
-//    print("new class with: ${variables.length}");
-//    variables.forEach((v){
-//      Identifier id = new Identifier(v.name);
-//      addr[id] = _lookUpAddress(id);
-//    });
-//    
-//    return new ClassScope(clazz, addr, static);
   }
   
   dynamic _lookUpAddress(variable){
@@ -99,29 +83,14 @@ class Environment {
     return val is Address ? values[val] : val;
   }
   
+  bool isPrimitive(variable) => lookUp(variable) is! ClassScope;
+  
   Address _newValue(ClassScope value){
     Address addr = new Address(++_counter);
     values[addr] = value;
     return addr;
   }
   
-//  Address _lookUpAddress(Identifier name){
-//    Map<Identifier, dynamic> scope = _findScope(name);
-//    if(scope != null)
-//      return scope[name];
-//    
-//    throw "Variable [${name.name}] is not declared!";
-//  }
-//  
-//  Map<Identifier, dynamic> _findScope(Identifier name){
-//    for(int i = assignments.length-1; i >= 0; i--){
-//      Map<Identifier, dynamic> scope = assignments[i];
-//      if(scope.containsKey(name))
-//        return scope;
-//    }
-//    return null;
-//  }
-
   callMemberMethod(select, List args) {
     if(select is MemberSelect){
       ClassScope env = lookUp(select.owner);
@@ -161,31 +130,6 @@ class Address {
     return addr == other.addr;
   }
 }
-
-//class ClassEnv {
-//  final ClassDecl decl;
-//  final Map<Identifier, dynamic> _variables = new Map<Identifier, dynamic>();
-//  final bool _static;
-//  
-//  ClassEnv(this.decl, Map<Identifier, dynamic> initialValues, [this._static = false]){
-//    initialValues.keys.forEach((name){
-//      if((_static && !decl.staticVariables.where((e) => e.name == name.name).isEmpty) || 
-//          (!_static && !decl.instanceVariables.where((e) => e.name == name.name).isEmpty))
-//        _variables[name] = initialValues[name];
-//      else
-//        throw "Class ${decl.name} has no${_static ? " static" : ""} variable named ${name}";
-//      });
-//  }
-//  
-//  List<MethodDecl> getMethods() => (_static ? decl.staticMethods : decl.instanceMethods);
-//  
-//  /**
-//   * Returns address or primitive value of named variable. 
-//   */
-//  dynamic lookUp(Identifier name){
-//    return _variables[name];
-//  }
-//}
 
 class Scope {
   final Map<Identifier, dynamic> assignments = new Map<Identifier, dynamic>();
@@ -256,20 +200,6 @@ class Scope {
     else
       _subscope = s;
   }
-  
-//  bool methodReturn(){
-//    if(_subscope == null)
-//      return false;
-//
-//    //returned from method
-//    if(_subscope.methodReturn())
-//      return true;
-//      
-//
-//    //Not return from method yet, so remove subscope
-//    _subscope = null;
-//    return isMethod;
-//  }
 }
 
 class ClassScope extends Scope {
@@ -345,7 +275,6 @@ class ClassScope extends Scope {
   
   void loadMethod(Identifier name, List args) {
     List<MethodDecl> methods = isStatic ? clazz.staticMethods : clazz.instanceMethods;
-    print("looking for $name $args");
 
     MethodDecl method = methods.singleMatching((m) => m.name == name.name && _checkParamArgTypeMatch(m.type.parameters, args));
     addSubScope(new Scope.method(method.body));
@@ -362,16 +291,8 @@ class ClassScope extends Scope {
       Type p = parameters[i];
       var a = args[i];
 
-      //both primitive
-      if(p.isPrimitive && a is! ClassScope){
-        if(p.id.toLowerCase() != "${a.runtimeType}".toLowerCase())
-          return false;
-      }
-      //both declared
-      else if(!p.isPrimitive && a is ClassScope){
-        if(p.id != a.clazz.name)
-          return false;
-      }
+      if(!p.sameType(a))
+        return false;
     }
     return true;
   }
