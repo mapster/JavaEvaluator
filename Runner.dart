@@ -99,6 +99,15 @@ class Runner {
           return args[0] + args[1];
         };
         break;
+      case BinaryOp.MINUS:
+        method = (List args) => args[0] - args[1];
+        break;
+      case BinaryOp.MULT:
+        method = (List args) => args[0] * args[1];
+        break;
+      case BinaryOp.DIV:
+        method = (List args) => args[0] / args[1];
+        break;
       default:
         throw "Binary operator not supported yet: ${binary.type}";
     }

@@ -194,6 +194,9 @@ class If extends ASTNode {
 class BinaryOp extends ASTNode {
   static const String EQUAL = "EQUAL_TO";
   static const String PLUS = "PLUS";
+  static const String MINUS = "MINUS";
+  static const String MULT = "MULTIPLY";
+  static const String DIV = "DIVIDE";
   
   final String type;
   final left;
@@ -217,6 +220,12 @@ class BinaryOp extends ASTNode {
         return "==";
       case PLUS:
         return "+";
+      case MINUS:
+        return "-";
+      case MULT:
+        return "*";
+      case DIV:
+        return "/";
       default:
         throw "Operator toString not supported for: $op";
     }
