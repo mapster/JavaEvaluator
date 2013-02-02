@@ -3,6 +3,7 @@ part of JavaEvaluator;
 abstract class PrimitiveValue {
   final num value;
   PrimitiveValue(this.value);
+  String get type;
 }
 
 typedef NumberValue BinaryOperation(NumberValue first, NumberValue second);
@@ -39,6 +40,8 @@ abstract class NumberValue extends PrimitiveValue {
 class LongValue extends NumberValue {
   static const int MIN = -9223372036854775808;
   static const int MAX =  9223372036854775807;
+
+  String get type => "long";
   
   factory LongValue(int value) {
     if(value < MIN)
@@ -73,6 +76,8 @@ class IntegerValue extends NumberValue {
   static const int MIN = -2147483648;
   static const int MAX = 2147483647;
   
+  String get type => "int";
+  
   factory IntegerValue(int value) {
     if(value < MIN)
       return new IntegerValue._(MAX - (MIN - value) +1);
@@ -105,6 +110,7 @@ class DoubleValue extends NumberValue {
   DoubleValue(double value) : super(value);
   DoubleValue create(num value) => new DoubleValue(value.toDouble()); 
   
+  String get type => "double";
   
   int promotionCompare(NumberValue other){
     if(other is! DoubleValue)
@@ -124,6 +130,8 @@ class DoubleValue extends NumberValue {
 class FloatValue extends NumberValue {
   FloatValue(double value) : super(value);
   FloatValue create(num value) => new FloatValue(value.toDouble());
+  
+  String get type => "float";
   
   int promotionCompare(NumberValue other){
     if(other is NumberValue) //same type

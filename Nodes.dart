@@ -75,9 +75,10 @@ class Type extends ASTNode {
     else if(other is Literal){
       return this.isPrimitive && id.toLowerCase() == other.value;
     }
-    else{
-      return this.isPrimitive && id.toLowerCase() == other.runtimeType.toString();
+    else if(other is PrimitiveValue){
+      return this.isPrimitive && id.toLowerCase() == other.type;
     }
+    else throw "Don't know how to compare type with $other : ${other.runtimeType}";    
   }
 }
 
@@ -292,7 +293,9 @@ class Literal extends ASTNode {
   Literal.fromJson(Map json) : this._type = json['type'], super.fromJson(json) {
     switch(_type){
       case 'INT_LITERAL':
-        _value = int.parse(json['value']); break;
+        _value = new IntegerValue(int.parse(json['value'])); break;
+      case 'DOUBLE_LITERAL':
+        _value = new DoubleValue(double.parse(json['value'])); break;
       case 'STRING_LITERAL':
         _value = json['value']; break;
       case 'BOOLEAN_LITERAL':
