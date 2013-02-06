@@ -18,9 +18,9 @@ void main() {
   InputElement bruk = query("#bruk");
 
   //  Parser.prog.root.map(f)
-  bruk.on.click.add((Event e){readFile();});
-  stepBtn.on.click.add((Event e){step();});
-  query("#example").on.click.add((Event e){postSourceToJsonService(exampleSource);});
+  bruk.onClick.listen((Event e){readFile();});
+  stepBtn.onClick.listen((Event e){step();});
+  query("#example").onClick.listen((Event e){postSourceToJsonService(exampleSource);});
   
 //  drawArrow(new Pos(), new Pos(), 7);
 }
@@ -50,14 +50,14 @@ selectCurrent(){
 readFile(){
   InputElement fileChoice = query("#file");
   FileReader reader = new FileReader();
-  reader.on.loadEnd.add((Event e){postSourceToJsonService(reader.result);});
+  reader.onLoadEnd.listen((Event e){postSourceToJsonService(reader.result);});
   reader.readAsText(fileChoice.files[0]);
 }
 
 postSourceToJsonService(String data){
   HttpRequest req = new HttpRequest();
   
-  req.on.readyStateChange.add((Event e){
+  req.onReadyStateChange.listen((Event e){
       if(req.readyState == HttpRequest.DONE && (req.status == 200 || req.status == 0)){
         prog = (new Program(parse(req.responseText)));
         runner = new Runner(prog);
