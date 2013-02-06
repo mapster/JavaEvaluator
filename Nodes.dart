@@ -198,6 +198,13 @@ class If extends ASTNode {
   If.fromJson(Map json, this.condition, this.then, [this.elze]) : super.fromJson(json);
 }
 
+class NewArray extends ASTNode {
+  final Type type;
+  final List<Literal> dimensions;
+  
+  NewArray.fromJson(Map json, this.type, this.dimensions) : super.fromJson(json);
+}
+
 class BinaryOp extends ASTNode {
   static const String EQUAL = "EQUAL_TO";
   static const String PLUS = "PLUS";

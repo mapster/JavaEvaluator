@@ -70,6 +70,8 @@ class Program {
         return json['value'];
       case 'member_select':
         return new MemberSelect.fromJson(json, parseObject(json['expr']));
+      case 'new_array':
+        return new NewArray.fromJson(json, new Type(parseObject(json['type'])), json['dimensions'].map(parseObject).toList());
       case 'return':
         return new Return.fromJson(json, parseObject(json['expr']));
       default:

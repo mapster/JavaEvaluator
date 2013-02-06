@@ -55,6 +55,9 @@ class Printer {
     else if(astNode is MethodDecl){
       return _methodDeclToHtml(astNode, newLine);
     }
+    else if(astNode is NewArray){
+      return _newArrayToHtml(astNode, newLine); 
+    }
     else if(astNode is Return){
       return _returnToHtml(astNode, newLine);
     }
@@ -64,6 +67,7 @@ class Printer {
     else if(astNode is Variable){
       return _variableToHtml(astNode, newLine);
     }
+    else throw "Unknown node type, cannot print: ${astNode.runtimeType}";
   }
 
   static List<Element> _assignmentToHtml(Assignment node, bool newLine) {
@@ -149,6 +153,14 @@ class Printer {
     body.children = node.body.mappedBy((e) => _toHtml(e, true)).toList().reduce(new List<Element>(), _reduceLists);
     
     return [header, body, _newElement(newLine:true, text:"}")];
+  }
+  
+  static List<Element> _newArrayToHtml(NewArray node, bool newLine){
+    Element element = _newElement(nodeid:node.nodeId, newLine:newLine);
+    element.children.add(_newElement(keyword:true, text:"new "));
+    element.children.addAll(_toHtml(node.type, false));
+    element.children.add(_newElement(text: node.dimensions.reduce("", (String r, Literal l) => "$r[${l.value}]")));
+    return [element];
   }
 
   static List<Element> _returnToHtml(Return node, bool newLine) {
