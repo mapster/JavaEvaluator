@@ -42,41 +42,47 @@ class ClassDecl extends ASTNode {
 }
 
 class Type extends ASTNode {
-  final String id;
-  final bool isPrimitive;
+  final type;
+
+  Type(this.type) {
+    if(!(type is String || type is Type || type is Identifier)){
+      throw "Invalid type: ${type.runtimeType}";
+    }
+  }
   
-  Type.fromJson(Map json) : this.id = json['value'], this.isPrimitive = (json['NODE_TYPE'] == "primitive"), super.fromJson(json);
-  Type.primitive(this.id) : this.isPrimitive = true, super();
-  Type.declared(this.id) : this.isPrimitive = false, super();
+  bool get isPrimitive => type is String;
+  bool get isArray => type is Type;
+  bool get isDeclared => type is Identifier;
   
-  static final Type VOID = new Type.primitive("VOID");
-  static final Type STRING = new Type.declared("String");
-  
+  static final Type VOID = new Type("VOID");
+  static final Type STRING = new Type(new Identifier("String"));
+
   String toString(){
-    String r = "$id";
+    if(isArray)
+      return "$type[]";
+    
     if(isPrimitive)
-      r = r.toLowerCase();
-    return r;
+      return "${type.toLowerCase()}";
+      
+    return "$type";
   }
   
   bool operator==(other){
     if(identical(other, this))
       return true;
-
-    return id == other.id && isPrimitive == other.isPrimitive;
+    
+    Type t = other;    
+    return type == t.type;
   }
   
   bool sameType(other){
     if(other is Type)
       return this == other;
     else if(other is ClassScope){
-      return !this.isPrimitive && id == other.clazz.name;
+      return this.isDeclared && type == other.clazz.name; //isDeclared is superfluous
     }
-    else if(other is Literal){
-      return this.isPrimitive && id.toLowerCase() == other.value;
-    }
-    else if(other is PrimitiveValue){
-      return this.isPrimitive && id.toLowerCase() == other.type;
+    else if(other is Literal || other is PrimitiveValue){
+      return this.isPrimitive && type.toLowerCase() == other.type;  //isPrimitive is superfluous
     }
     else throw "Don't know how to compare type with $other : ${other.runtimeType}";    
   }
@@ -255,7 +261,8 @@ class Identifier extends ASTNode {
     if(identical(other, this))
       return true;
     
-    return name == other.name;
+    Identifier i = other;
+    return name == i.name;
   }
   
   String toString() => name;

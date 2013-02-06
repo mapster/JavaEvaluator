@@ -64,6 +64,10 @@ class Program {
         return new BinaryOp.fromJson(json, parseObject(json['left_op']), parseObject(json['right_op']));
       case 'identifier':
         return new Identifier.fromJson(json); 
+      case 'array':
+        return new Type(parseObject(json['value']));
+      case 'primitive':
+        return json['value'];
       case 'member_select':
         return new MemberSelect.fromJson(json, parseObject(json['expr']));
       case 'return':
@@ -84,7 +88,7 @@ class Program {
   parseAssignment(Map json) => new Assignment.fromJson(json, parseObject(json['variable']), parseObject(json['expr']));
 
   parseMethod(Map json) {
-    MethodDecl method = new MethodDecl.fromJson(json, new Type.fromJson(json['type']), json['parameters'].mappedBy(parseObject).toList(), json['body']['statements'].mappedBy(parseObject).toList());
+    MethodDecl method = new MethodDecl.fromJson(json, new Type(parseObject(json['type'])), json['parameters'].mappedBy(parseObject).toList(), json['body']['statements'].mappedBy(parseObject).toList());
     
     if(method.name == "main" && method.type == MethodType.main){
       this.main = method;
@@ -100,7 +104,7 @@ class Program {
   }
 
   Variable parseVar(Map json) {
-    return new Variable.fromJson(json, new Type.fromJson(json['type']), parseObject(json['initializer']));
+    return new Variable.fromJson(json, new Type(parseObject(json['type'])), parseObject(json['initializer']));
   }
   
 //  Variable parseVar(Map json) => new Variable.fromJson(json, new Type.fromJson(json['type']), parseObject(json['initializer']));
