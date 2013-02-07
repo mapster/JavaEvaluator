@@ -56,7 +56,7 @@ class Type extends ASTNode {
   
   static final Type VOID = new Type("VOID");
   static final Type STRING = new Type(new Identifier("String"));
-
+  
   String toString(){
     if(isArray)
       return "$type[]";
@@ -86,6 +86,8 @@ class Type extends ASTNode {
     }
     else throw "Don't know how to compare type with $other : ${other.runtimeType}";    
   }
+  
+  static const Map typeMap = const {'int':IntegerValue, 'long':LongValue, 'float':FloatValue, 'double':DoubleValue};
 }
 
 class MethodType {
