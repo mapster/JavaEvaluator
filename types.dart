@@ -3,12 +3,14 @@ part of JavaEvaluator;
 abstract class PrimitiveValue {
   final num value;
   PrimitiveValue(this.value);
+  const PrimitiveValue.fixed(this.value);
   String get type;
 }
 
 typedef NumberValue BinaryOperation(NumberValue first, NumberValue second);
 
 abstract class NumberValue extends PrimitiveValue {
+  const NumberValue.fixed(num value) : super.fixed(value);
   NumberValue(num value) : super(value);
   
   static NumberValue _executeOperation(NumberValue first, NumberValue second, BinaryOperation op){
@@ -53,6 +55,7 @@ class LongValue extends NumberValue {
   
   LongValue._(int value) : super(value);
   LongValue create(num value) => new LongValue(value.toInt());
+  LongValue.defaultValue() : super.fixed(0);
   
   int promotionCompare(NumberValue other){
     if(other is LongValue) //same type
@@ -88,6 +91,7 @@ class IntegerValue extends NumberValue {
   
   IntegerValue._(int value) : super(value);
   IntegerValue create(num value) => new IntegerValue(value.toInt());
+  const IntegerValue.defaultValue() : super.fixed(0);
   
   int promotionCompare(NumberValue other){
     if(other is IntegerValue) //same type
@@ -108,7 +112,8 @@ class IntegerValue extends NumberValue {
 
 class DoubleValue extends NumberValue {
   DoubleValue(double value) : super(value);
-  DoubleValue create(num value) => new DoubleValue(value.toDouble()); 
+  DoubleValue create(num value) => new DoubleValue(value.toDouble());
+  const DoubleValue.defaultValue() : super.fixed(0.0);
   
   String get type => "double";
   
@@ -130,6 +135,7 @@ class DoubleValue extends NumberValue {
 class FloatValue extends NumberValue {
   FloatValue(double value) : super(value);
   FloatValue create(num value) => new FloatValue(value.toDouble());
+  const FloatValue.defaultValue() : super.fixed(0.0);
   
   String get type => "float";
   
