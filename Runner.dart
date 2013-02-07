@@ -58,6 +58,8 @@ class Runner {
       return _evalMethodCall(statement);
     else if(statement is Assignment)
       return _evalAssignment(statement);
+    else if(statement is NewArray)
+      return _evalNewArray(statement);
     else if(statement is int)
       return statement;
     else if(statement is If)
@@ -75,6 +77,33 @@ class Runner {
     else if(statement is Literal)
       return statement.value;
     else throw "Statement type not supported yet: ${statement.runtimeType} '$statement'";
+  }
+  
+  _newArray(List dimensions, final value){
+    if(dimensions.length == 1)
+      return new List.fixedLength(dimensions.first, fill:value);
+    else {
+      List l = new List.fixedLength(dimensions.first);
+      List dims = dimensions.getRange(1, dimensions.length-1); 
+      for(int i=0; i < l.length; i++){
+        l[i] = _newArray(dims, value);
+      }
+      return l;
+    }
+  }
+
+  _evalNewArray(NewArray newArray) {
+    return new EvalTree(newArray, this, true, (List args){
+      Type t = newArray.type;
+      while(t.isArray)
+        t = t.type;
+      
+      var value = null;
+      if(t.isPrimitive)
+        value = Type.typeMap[t.type.toLowerCase()];
+      
+      return _newArray(args, value);
+    }, newArray.dimensions);
   }
 
   _evalMethodCall(MethodCall call) {
