@@ -203,9 +203,9 @@ class Printer {
     return r;
   }
   
-  static final _reduceLists = (List r, e) {
+  static _reduceLists(List r, e) {
     r.addAll(e);
     return r;
-  };
+  }
   
 }
