@@ -175,7 +175,14 @@ class Printer {
     return [element];
   }
 
-  static List<Element> _typeToHtml(Type node, bool newLine) => [_newElement(nodeid:node.nodeId, keyword:node.isPrimitive, text:node.toString())]; 
+  static List<Element> _typeToHtml(Type node, bool newLine){
+    List<Element> els = new List<Element>();
+    if(node.isArray)
+      els.addAll(_typeToHtml(node.type, false));
+    
+    els.add(_newElement(nodeid:node.nodeId, keyword:node.isPrimitive, text:node.toString()));
+    return els;
+  }
 
   static List<Element> _variableToHtml(Variable node, bool newLine) {
     Element element = _newElement(nodeid:node.nodeId, newLine:newLine);

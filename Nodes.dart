@@ -59,7 +59,7 @@ class Type extends ASTNode {
   
   String toString(){
     if(isArray)
-      return "$type[]";
+      return "[]";
     
     if(isPrimitive)
       return "${type.toLowerCase()}";
