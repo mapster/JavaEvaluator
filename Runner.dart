@@ -25,22 +25,17 @@ class Runner {
   }
     
   void step(){
-    _extraStep = false;
-    
     var toEval = environment.popStatement();
     _current = toEval;
     if(toEval is EvalTree)
       _current = toEval.origExpr;
       
-    print("step: $current - id: ${current.nodeId}");
     Scope currentScope = environment.currentScope;
     var result = _eval(toEval);
     if(result is EvalTree){
       currentScope._statements.insertRange(0, 1, result);
     }
-    
-//    if(_extraStep)
-//      step();
+    print("step: $current - id: ${current.nodeId}");
   }
   
   bool isDone(){
@@ -102,7 +97,7 @@ class Runner {
       if(t.isPrimitive)
         value = Type.typeMap[t.type.toLowerCase()];
       
-      return _newArray(args, value);
+      return _newArray(args.mappedBy((arg) => arg.value), value);
     }, newArray.dimensions);
   }
 

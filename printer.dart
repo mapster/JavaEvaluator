@@ -159,7 +159,11 @@ class Printer {
     Element element = _newElement(nodeid:node.nodeId, newLine:newLine);
     element.children.add(_newElement(keyword:true, text:"new "));
     element.children.addAll(_toHtml(node.type, false));
-    element.children.add(_newElement(text: node.dimensions.reduce("", (String r, Literal l) => "$r[${l.value}]")));
+    node.dimensions.forEach((dim){
+      element.children.add(_newElement(text:"["));
+      element.children.addAll(_toHtml(dim, false));
+      element.children.add(_newElement(text:"]"));
+    });
     return [element];
   }
 

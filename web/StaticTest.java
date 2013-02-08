@@ -1,5 +1,6 @@
 class StaticTest {
-    static int[][] liste = new int[10][2];
+    static int tall = 8;
+    static int[][] liste = new int[tall][2];
     static String s = "hei";
     static String s2 = s + "sann";
     static int tall0 = 3-1;
