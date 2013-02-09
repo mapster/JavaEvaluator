@@ -307,8 +307,8 @@ class TypeNode extends ASTNode {
   }
   
   static const Map<String, PrimitiveValue> DEFAULT_VALUES = 
-      const {'int': const IntegerValue.defaultValue(), 'long': const LongValue.defaultValue(), 
-              'float': const FloatValue.defaultValue(), 'double': const DoubleValue.defaultValue()};
+      const {'int': IntegerValue.defaultValue, 'long': LongValue.defaultValue, 
+              'float': FloatValue.defaultValue, 'double': DoubleValue.defaultValue};
 }
 
 class Variable extends ASTNode {

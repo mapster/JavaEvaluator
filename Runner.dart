@@ -20,8 +20,8 @@ class Runner {
   }
   
   void loadClass(ClassDecl clazz) {
-    ClassScope staticClass = environment.newClassInstance(clazz, true);
-    environment.loadEnv(staticClass);
+    ReferenceValue instanceAddr = environment.newClassInstance(clazz, true);
+    environment.loadEnv(environment.values[instanceAddr]);
   }
     
   void step(){
@@ -62,7 +62,7 @@ class Runner {
     else if(statement is BinaryOp)
       return _evalBinaryOp(statement);
     else if(statement is Identifier)
-      return environment.lookUp(statement);
+      return environment.lookUpValue(statement);
     else if(statement is String)
       return statement;
     else if(statement is bool)
@@ -77,8 +77,7 @@ class Runner {
   }
   
   _evalArrayAccess(ArrayAccess access){
-    return new EvalTree(access, this, true, (List args){
-      print(args.first[args[1].value].runtimeType);
+    return new EvalTree(access, this, (List args){
       return args.first[args[1].value];
     }, [access.expr, access.index]);
   }
@@ -97,7 +96,7 @@ class Runner {
   }
 
   _evalNewArray(NewArray newArray) {
-    return new EvalTree(newArray, this, true, (List args){
+    return new EvalTree(newArray, this, (List args){
       TypeNode t = newArray.type;
       while(t.isArray)
         t = t.type;
@@ -111,8 +110,8 @@ class Runner {
   }
 
   _evalMethodCall(MethodCall call) {
-    return new EvalTree(call, this, false, (List args){
-      environment.callMemberMethod(call.select, args);
+    return new EvalTree(call, this, (List args){
+      environment.loadMethod(call.select, args);
       var toReturn = new EvalTree(call, this, false);
       returnValues.addLast(toReturn);
       return toReturn;
@@ -145,11 +144,11 @@ class Runner {
         throw "Binary operator not supported yet: ${binary.type}";
     }
     
-    return new EvalTree(binary, this, true, method, [binary.left, binary.right]).execute();
+    return new EvalTree(binary, this, method, [binary.left, binary.right]).execute();
   }
 
   _evalIf(If ifStat){
-      return new EvalTree(ifStat, this, true, (List args){
+      return new EvalTree(ifStat, this, (List args){
         if(args[0])
           environment.addBlockScope(ifStat.then);
         else if(ifStat.elze != null){
@@ -158,17 +157,17 @@ class Runner {
       }, [ifStat.condition]).execute();
   }
   
-  _evalAssignment(Assignment assign) => new EvalTree(assign, this, false, (List args){environment.assign(assign.id, args.first);}, [assign.expr]).execute();
+  _evalAssignment(Assignment assign) => new EvalTree(assign, this, (List args){environment.assign(assign.id, args.first);}, [assign.expr]).execute();
 
   _evalVariable(Variable variable) {
     if(variable.initializer == null)
-      return new EvalTree(variable, this, false, (List args){environment.newVariable(new Identifier(variable.name));}, []).execute();
+      return new EvalTree(variable, this, (List args){environment.newVariable(new Identifier(variable.name));}, []).execute();
 
-    return new EvalTree(variable, this, false, (List args){environment.newVariable(new Identifier(variable.name), args.first);}, [variable.initializer]).execute();
+    return new EvalTree(variable, this, (List args){environment.newVariable(new Identifier(variable.name), args.first);}, [variable.initializer]).execute();
   }
   
   _evalReturn(Return ret){
-    return new EvalTree(ret, this, false, (List args){
+    return new EvalTree(ret, this, (List args){
       returnValues.removeLast().method = (List l) => args.first;
       environment.methodReturn();
       _extraStep = true;
@@ -177,7 +176,6 @@ class Runner {
 }
 
 class EvalTree extends ASTNode {
-  final bool lookUpArguments;
   final List args;
   final List evaledArgs = [];
   final Runner runner;
@@ -187,25 +185,19 @@ class EvalTree extends ASTNode {
   get method => _method;
   set method(m) => _method = m;
   
-  EvalTree(this.origExpr, this.runner, this.lookUpArguments, [this._method, this.args = const []]) : super();
+  EvalTree(this.origExpr, this.runner, [this._method, this.args = const []]) : super();
   
   dynamic execute(){
     //evaluate arguments
     if(!args.isEmpty){
-      if(!lookUpArguments && (args.first is Identifier || args.first is MemberSelect) && !runner.environment.isPrimitive(args.first)){
-        evaledArgs.addLast(args.removeAt(0));
-        runner.current = evaledArgs.last;
-      }
+      var evaledArg = runner._eval(args.first);
+      if(evaledArg is EvalTree)
+        args[0] = evaledArg;
       else {
-        var evaledArg = runner._eval(args.first);
-        if(evaledArg is EvalTree)
-          args[0] = evaledArg;
-        else {
-          evaledArgs.addLast(evaledArg);
-          args.removeAt(0);
-        }
+        evaledArgs.addLast(evaledArg);
+        args.removeAt(0);
       }
-      //return this since it has now stepped one execution
+      //return _this_ since it has now stepped one execution
       return this;
     }
     

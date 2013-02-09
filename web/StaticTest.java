@@ -1,8 +1,5 @@
 class StaticTest {
     static int tall = 8;
-    static int[][] liste = new int[tall][2];
-    static String s = "hei";
-    static String s2 = s + "sann";
     static int tall0 = 3-1;
     static int mult = 3*tall0;
     static int div = 6/2;
@@ -10,10 +7,6 @@ class StaticTest {
     static int tall3 = funksjon(fem());
     static int tall4 = funksjon3(fem(), funksjon2(fem()), 3);
     static double d1 = 2.0 * tall0;
-
-    static int farray(String[] liste){
-        return 1;
-    }
 
     static int funksjon(int tall){
         tall0 = tall;
@@ -35,5 +28,18 @@ class StaticTest {
     static int funksjon3(int tall, int tall2, int tall3){
         return tall2;
     }
+
+    public static void main(String[] args){
+        System.out.println(mult);
+        System.out.println(tall2);
+        System.out.println(tall0);
+        System.out.println(div);
+        System.out.println(tall);
+        System.out.println(tall3);
+        System.out.println(d1);
+        System.out.println(tall4);
+    }
+
+
 }
 
