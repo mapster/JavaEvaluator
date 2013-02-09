@@ -283,12 +283,12 @@ class ClassScope extends Scope {
     }
   }
   
-  bool _checkParamArgTypeMatch(List<Type> parameters, List<dynamic> args) {
+  bool _checkParamArgTypeMatch(List<TypeNode> parameters, List<dynamic> args) {
     if(parameters.length != args.length)
       return false;
     
     for(int i = 0; i < parameters.length; i++){
-      Type p = parameters[i];
+      TypeNode p = parameters[i];
       var a = args[i];
 
       if(!p.sameType(a))

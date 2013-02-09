@@ -28,7 +28,10 @@ class Printer {
   } 
   
   static List<Element> _toHtml(ASTNode astNode, bool newLine){
-    if(astNode is Assignment){
+    if(astNode is ArrayAccess){
+      return _arrayAccessToHtml(astNode, newLine);
+    }
+    else if(astNode is Assignment){
       return _assignmentToHtml(astNode, newLine);
     }
     else if(astNode is BinaryOp){
@@ -61,13 +64,22 @@ class Printer {
     else if(astNode is Return){
       return _returnToHtml(astNode, newLine);
     }
-    else if(astNode is Type){
+    else if(astNode is TypeNode){
       return _typeToHtml(astNode, newLine);
     }
     else if(astNode is Variable){
       return _variableToHtml(astNode, newLine);
     }
     else throw "Unknown node type, cannot print: ${astNode.runtimeType}";
+  }
+
+  static List<Element> _arrayAccessToHtml(ArrayAccess node, bool newLine) {
+    Element element = _newElement(newLine:newLine, nodeid:node.nodeId);
+    element.children.addAll(_toHtml(node.expr, false));
+    element.children.add(_newElement(text:"["));
+    element.children.addAll(_toHtml(node.index, false));
+    element.children.add(_newElement(text:"]"));
+    return [element];
   }
 
   static List<Element> _assignmentToHtml(Assignment node, bool newLine) {
@@ -175,7 +187,7 @@ class Printer {
     return [element];
   }
 
-  static List<Element> _typeToHtml(Type node, bool newLine){
+  static List<Element> _typeToHtml(TypeNode node, bool newLine){
     List<Element> els = new List<Element>();
     if(node.isArray)
       els.addAll(_typeToHtml(node.type, false));

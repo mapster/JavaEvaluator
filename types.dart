@@ -55,7 +55,7 @@ class LongValue extends NumberValue {
   
   LongValue._(int value) : super(value);
   LongValue create(num value) => new LongValue(value.toInt());
-  LongValue.defaultValue() : super.fixed(0);
+  const LongValue.defaultValue() : super.fixed(0);
   
   int promotionCompare(NumberValue other){
     if(other is LongValue) //same type

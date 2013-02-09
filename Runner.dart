@@ -71,7 +71,16 @@ class Runner {
       return _evalReturn(statement);
     else if(statement is Literal)
       return statement.value;
+    else if(statement is ArrayAccess)
+      return _evalArrayAccess(statement);
     else throw "Statement type not supported yet: ${statement.runtimeType} '$statement'";
+  }
+  
+  _evalArrayAccess(ArrayAccess access){
+    return new EvalTree(access, this, true, (List args){
+      print(args.first[args[1].value].runtimeType);
+      return args.first[args[1].value];
+    }, [access.expr, access.index]);
   }
   
   _newArray(List dimensions, final value){
@@ -89,13 +98,13 @@ class Runner {
 
   _evalNewArray(NewArray newArray) {
     return new EvalTree(newArray, this, true, (List args){
-      Type t = newArray.type;
+      TypeNode t = newArray.type;
       while(t.isArray)
         t = t.type;
       
       var value = null;
       if(t.isPrimitive)
-        value = Type.typeMap[t.type.toLowerCase()];
+        value = TypeNode.DEFAULT_VALUES[t.type.toLowerCase()];
       
       return _newArray(args.mappedBy((arg) => arg.value), value);
     }, newArray.dimensions);

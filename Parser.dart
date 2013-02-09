@@ -24,6 +24,8 @@ class Program {
       return;
     //TODO add support for block node
     switch(json['NODE_TYPE']){
+      case 'array_access':
+        return new ArrayAccess.fromJson(json, parseObject(json['index']), parseObject(json['expr']));
       case 'class':
         return parseClass(json);
       case 'method':
@@ -45,13 +47,13 @@ class Program {
       case 'identifier':
         return new Identifier.fromJson(json); 
       case 'array':
-        return new Type(parseObject(json['value']));
+        return new TypeNode(parseObject(json['value']));
       case 'primitive':
         return json['value'];
       case 'member_select':
         return new MemberSelect.fromJson(json, parseObject(json['expr']));
       case 'new_array':
-        return new NewArray.fromJson(json, new Type(parseObject(json['type'])), json['dimensions'].map(parseObject).toList());
+        return new NewArray.fromJson(json, new TypeNode(parseObject(json['type'])), json['dimensions'].map(parseObject).toList());
       case 'return':
         return new Return.fromJson(json, parseObject(json['expr']));
       default:
@@ -70,7 +72,7 @@ class Program {
   parseAssignment(Map json) => new Assignment.fromJson(json, parseObject(json['variable']), parseObject(json['expr']));
 
   parseMethod(Map json) {
-    MethodDecl method = new MethodDecl.fromJson(json, new Type(parseObject(json['type'])), json['parameters'].mappedBy(parseObject).toList(), json['body']['statements'].mappedBy(parseObject).toList());
+    MethodDecl method = new MethodDecl.fromJson(json, new TypeNode(parseObject(json['type'])), json['parameters'].mappedBy(parseObject).toList(), json['body']['statements'].mappedBy(parseObject).toList());
     
     if(method.name == "main" && method.type == MethodType.main){
       this.main = method;
@@ -86,6 +88,6 @@ class Program {
   }
 
   Variable parseVar(Map json) {
-    return new Variable.fromJson(json, new Type(parseObject(json['type'])), parseObject(json['initializer']));
+    return new Variable.fromJson(json, new TypeNode(parseObject(json['type'])), parseObject(json['initializer']));
   }
 }
