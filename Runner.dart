@@ -1,5 +1,7 @@
 part of JavaEvaluator;
 
+typedef dynamic EvalMethod(List args);
+
 class Runner {
   Environment environment = new Environment();
   Program program;
@@ -112,7 +114,7 @@ class Runner {
   _evalMethodCall(MethodCall call) {
     return new EvalTree(call, this, (List args){
       environment.loadMethod(call.select, args);
-      var toReturn = new EvalTree(call, this, false);
+      var toReturn = new EvalTree(call, this);
       returnValues.addLast(toReturn);
       return toReturn;
     }, new List.from(call.arguments)).execute();
@@ -179,11 +181,11 @@ class EvalTree extends ASTNode {
   final List args;
   final List evaledArgs = [];
   final Runner runner;
-  var _method;
+  EvalMethod _method;
   final origExpr;
   
-  get method => _method;
-  set method(m) => _method = m;
+  EvalMethod get method => _method;
+  set method(EvalMethod m) => _method = m;
   
   EvalTree(this.origExpr, this.runner, [this._method, this.args = const []]) : super();
   
