@@ -33,7 +33,14 @@ class Environment {
     if(!currentContext.assign(name, value))
       throw "Variable $name not declared in current scope!";
   }
+  
+  void arrayAssign(ReferenceValue array, int index, Value value) {
+    (values[array] as List)[index] = value;
+  }
 
+  Value getArrayValue(ReferenceValue array, int index){
+    return values[array][index];
+  }
   /**
    * Initializes a class instance, i.e. stores all fields with an initial value in memory and returns the class environment.
    */
@@ -44,6 +51,10 @@ class Environment {
       staticContext.newVariable(new Identifier(clazz.name),_newValue(scope));
     
     return _newValue(scope);
+  }
+  
+  ReferenceValue newArray(int size, [Value value = null]) {
+    return _newValue(new List.fixedLength(size, fill:value));
   }
   
   Value lookUpValue(variable){
@@ -72,7 +83,7 @@ class Environment {
     return val;
   }
   
-  ReferenceValue _newValue(ClassScope value){
+  ReferenceValue _newValue(dynamic value){
     ReferenceValue addr = new ReferenceValue(++_counter);
     values[addr] = value;
     return addr;

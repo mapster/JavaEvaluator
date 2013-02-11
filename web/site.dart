@@ -95,7 +95,7 @@ void printEnv(){
     clazz.children.add(name);
     clazz.children.addAll(sc.assignments.keys.mappedBy((Identifier id){
       DivElement assign = new DivElement();
-      assign.text = "$id: ${sc.assignments[id].value}";
+      assign.text = "$id: ${sc.assignments[id]}";
       return assign;
     }).toList());
     return clazz;

@@ -15,7 +15,7 @@ abstract class PrimitiveValue<T> extends Value<T> {
 class ReferenceValue extends Value<int> {
   const ReferenceValue(addr) : super(addr);
   static const invalid = const ReferenceValue(-1);
-  String toString() => "[$_value]";
+  String toString() => "@$_value";
   
   int get hashCode => 37 + _value;
   bool operator==(other){
@@ -24,6 +24,7 @@ class ReferenceValue extends Value<int> {
     return _value == other._value;
   }
 }
+
 
 typedef NumberValue BinaryOperation(NumberValue first, NumberValue second);
 

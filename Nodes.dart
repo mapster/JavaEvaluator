@@ -32,7 +32,7 @@ class ArrayAccess extends ASTNode {
 }
 
 class Assignment extends ASTNode {
-  final Identifier id;
+  final ASTNode id;
   final expr;
 
   Assignment(this.id, this.expr, [int startPos, int endPos]) : super(startPos, endPos);

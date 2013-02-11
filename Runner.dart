@@ -80,20 +80,20 @@ class Runner {
   
   _evalArrayAccess(ArrayAccess access){
     return new EvalTree(access, this, (List args){
-      return args.first[args[1].value];
+      return environment.getArrayValue(args.first, args[1].value);
     }, [access.expr, access.index]);
   }
   
   _newArray(List dimensions, final value){
     if(dimensions.length == 1)
-      return new List.fixedLength(dimensions.first, fill:value);
+      return environment.newArray(dimensions.first, value);
     else {
-      List l = new List.fixedLength(dimensions.first);
+      ReferenceValue arr = environment.newArray(dimensions.first);
       List dims = dimensions.getRange(1, dimensions.length-1); 
-      for(int i=0; i < l.length; i++){
-        l[i] = _newArray(dims, value);
+      for(int i=0; i < dimensions.first; i++){
+        environment.arrayAssign(arr, i, _newArray(dims, value));
       }
-      return l;
+      return arr;
     }
   }
 
@@ -107,7 +107,7 @@ class Runner {
       if(t.isPrimitive)
         value = TypeNode.DEFAULT_VALUES[t.type.toLowerCase()];
       
-      return _newArray(args.mappedBy((arg) => arg.value), value);
+      return _newArray(args.mappedBy((arg) => arg.value).toList(), value);
     }, newArray.dimensions);
   }
 
@@ -159,7 +159,16 @@ class Runner {
       }, [ifStat.condition]).execute();
   }
   
-  _evalAssignment(Assignment assign) => new EvalTree(assign, this, (List args){environment.assign(assign.id, args.first);}, [assign.expr]).execute();
+  _evalAssignment(Assignment assign){
+    if(assign.id is ArrayAccess){
+      ArrayAccess arr = assign.id;
+      return new EvalTree(assign, this, (List args) => environment.arrayAssign(args[0], args[1].value, args[2]), [arr.expr, arr.index, assign.expr]).execute();
+    }
+    else if(assign.id is Identifier)
+      return new EvalTree(assign, this, (List args) => environment.assign(assign.id, args.first),[assign.expr]).execute();
+    else
+      throw "Don't know how to assign to ${assign.id.runtimeType}: ${assign.id.toString()}";
+  }
 
   _evalVariable(Variable variable) {
     if(variable.initializer == null)
