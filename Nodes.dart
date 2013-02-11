@@ -279,7 +279,7 @@ class TypeNode extends ASTNode {
   
   String toString(){
     if(isArray)
-      return "[]";
+      return "${type}[]";
     
     if(isPrimitive)
       return "${type.toLowerCase()}";
@@ -288,7 +288,6 @@ class TypeNode extends ASTNode {
   }
   
   bool operator==(other){
-    print("comparing: $this == $other");
     if(identical(other, this))
       return true;
     
@@ -296,21 +295,9 @@ class TypeNode extends ASTNode {
     return type == t.type;
   }
   
-  bool sameType(other){
-    if(other is TypeNode)
-      return this == other;
-    else if(other is ClassScope){
-      return this.isDeclared && type == other.clazz.name; //isDeclared is superfluous
-    }
-    else if(other is Literal || other is PrimitiveValue){
-      return this.isPrimitive && type.toLowerCase() == other.type;  //isPrimitive is superfluous
-    }
-    else throw "Don't know how to compare type with $other : ${other.runtimeType}";    
-  }
-  
   static const Map<String, PrimitiveValue> DEFAULT_VALUES = 
-      const {'int': IntegerValue.defaultValue, 'long': LongValue.defaultValue, 
-              'float': FloatValue.defaultValue, 'double': DoubleValue.defaultValue};
+      const {'INT': IntegerValue.defaultValue, 'LONG': LongValue.defaultValue, 
+              'FLOAT': FloatValue.defaultValue, 'DOUBLE': DoubleValue.defaultValue};
 }
 
 class Variable extends ASTNode {

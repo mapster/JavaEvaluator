@@ -170,12 +170,28 @@ class Printer {
   static List<Element> _newArrayToHtml(NewArray node, bool newLine){
     Element element = _newElement(nodeid:node.nodeId, newLine:newLine);
     element.children.add(_newElement(keyword:true, text:"new "));
-    element.children.addAll(_toHtml(node.type, false));
+    
+    //find base type of array
+    TypeNode baseType = node.type;
+    while(baseType.isArray)
+      baseType = baseType.type;
+    
+    element.children.addAll(_toHtml(baseType, false));
     node.dimensions.forEach((dim){
       element.children.add(_newElement(text:"["));
       element.children.addAll(_toHtml(dim, false));
       element.children.add(_newElement(text:"]"));
     });
+    
+    //add uninitialized part of array
+    String arr = "";
+    TypeNode t = node.type;
+    while(t.isArray){
+      t = t.type;
+      arr = "$arr[]";
+    }
+    element.children.add(_newElement(text:arr));
+    
     return [element];
   }
 
@@ -192,7 +208,7 @@ class Printer {
     if(node.isArray)
       els.addAll(_typeToHtml(node.type, false));
     
-    els.add(_newElement(nodeid:node.nodeId, keyword:node.isPrimitive, text:node.toString()));
+    els.add(_newElement(nodeid:node.nodeId, keyword:node.isPrimitive, text:(node.isArray ? "[]" : node.toString())));
     return els;
   }
 

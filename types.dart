@@ -61,7 +61,8 @@ class LongValue extends NumberValue<int> {
   static const int MIN = -9223372036854775808;
   static const int MAX =  9223372036854775807;
 
-  String get type => "long";
+  static const TypeNode _type = const TypeNode.fixed("LONG"); 
+  String get type => "LONG";
   
   factory LongValue(int value) {
     if(value < MIN)
@@ -97,7 +98,7 @@ class IntegerValue extends NumberValue {
   static const int MIN = -2147483648;
   static const int MAX = 2147483647;
   
-  String get type => "int";
+  String get type => "INT";
   
   factory IntegerValue(int value) {
     if(value < MIN)
@@ -133,7 +134,7 @@ class DoubleValue extends NumberValue {
   DoubleValue create(num value) => new DoubleValue(value.toDouble());
   static const DoubleValue defaultValue =  const DoubleValue(0.0);
   
-  String get type => "double";
+  String get type => "DOUBLE";
   
   int promotionCompare(NumberValue other){
     if(other is! DoubleValue)
@@ -155,7 +156,7 @@ class FloatValue extends NumberValue {
   FloatValue create(num value) => new FloatValue(value.toDouble());
   static const FloatValue defaultValue = const FloatValue(0.0);
   
-  String get type => "float";
+  String get type => "FLOAT";
   
   int promotionCompare(NumberValue other){
     if(other is NumberValue) //same type

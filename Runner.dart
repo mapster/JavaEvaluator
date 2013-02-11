@@ -19,6 +19,11 @@ class Runner {
   
   Runner(this.program) {
     program.classDeclarations.values.forEach(loadClass);
+    //perform static loading
+    while(!isDone())
+      step();
+    
+//    environment.loadMethod(new MemberSelect("main", new Identifier("MainTest")), [environment.newArray(0, null, const TypeNode.fixed(TypeNode.STRING))]);
   }
   
   void loadClass(ClassDecl clazz) {
@@ -84,14 +89,14 @@ class Runner {
     }, [access.expr, access.index]);
   }
   
-  _newArray(List dimensions, final value){
+  _newArray(List dimensions, final value, TypeNode type){
     if(dimensions.length == 1)
-      return environment.newArray(dimensions.first, value);
+      return environment.newArray(dimensions.first, value, type);
     else {
-      ReferenceValue arr = environment.newArray(dimensions.first);
+      ReferenceValue arr = environment.newArray(dimensions.first, null, type);
       List dims = dimensions.getRange(1, dimensions.length-1); 
       for(int i=0; i < dimensions.first; i++){
-        environment.arrayAssign(arr, i, _newArray(dims, value));
+        environment.arrayAssign(arr, i, _newArray(dims, value, type.type));
       }
       return arr;
     }
@@ -99,16 +104,15 @@ class Runner {
 
   _evalNewArray(NewArray newArray) {
     return new EvalTree(newArray, this, (List args){
-      TypeNode t = newArray.type;
-      while(t.isArray)
-        t = t.type;
-      
+      TypeNode type = newArray.type;
+     
       var value = null;
-      if(t.isPrimitive)
-        value = TypeNode.DEFAULT_VALUES[t.type.toLowerCase()];
+      if(type.isPrimitive)
+        value = TypeNode.DEFAULT_VALUES[type.type];
       
-      return _newArray(args.mappedBy((arg) => arg.value).toList(), value);
-    }, newArray.dimensions);
+      return _newArray(args.mappedBy((arg) => arg.value).toList(), value, 
+          newArray.dimensions.reduce(type, (TypeNode r, e) => new TypeNode(r)));
+    }, newArray.dimensions.toList());
   }
 
   _evalMethodCall(MethodCall call) {

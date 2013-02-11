@@ -35,7 +35,7 @@ class Environment {
   }
   
   void arrayAssign(ReferenceValue array, int index, Value value) {
-    (values[array] as List)[index] = value;
+    (values[array] as Array)[index] = value;
   }
 
   Value getArrayValue(ReferenceValue array, int index){
@@ -53,8 +53,8 @@ class Environment {
     return _newValue(scope);
   }
   
-  ReferenceValue newArray(int size, [Value value = null]) {
-    return _newValue(new List.fixedLength(size, fill:value));
+  ReferenceValue newArray(int size, Value value, TypeNode type) {
+    return _newValue(new Array(size, value, type));
   }
   
   Value lookUpValue(variable){
@@ -94,7 +94,7 @@ class Environment {
       loadEnv(lookUpValue(select.owner));
       select = select.member_id;
     }
-    currentContext.loadMethod(select, args);
+    currentContext.loadMethod(select, args, args.map(typeOf).toList());
   }
   
   void methodReturn(){
@@ -115,6 +115,33 @@ class Environment {
   void unloadEnv(){
     contextStack.removeLast();
   }
+  
+  TypeNode typeOf(dynamic val){
+    if(val is ReferenceValue)
+      val = values[val];
+    
+    if(val is ClassScope){
+      return new TypeNode(new Identifier(val.clazz.name));
+    }
+    else if(val is PrimitiveValue){
+      return new TypeNode(val.type);
+    }
+    else if(val is Array){
+      return val.type;
+    }
+  }
+}
+
+class Array {
+  final List _list;
+  final TypeNode type;
+  
+  Array(int size, value, this.type) : _list = new List.fixedLength(size, fill:value);
+  
+  operator[](int index) => _list[index];
+  void operator[]=(int index, value) { _list[index] = value; }
+  
+  String toString() => _list.toString();
 }
 
 class Scope {
@@ -259,25 +286,25 @@ class ClassScope extends Scope {
     return super.isDone;
   }
   
-  void loadMethod(Identifier name, List args) {
+  void loadMethod(Identifier name, List args, List<TypeNode> argTypes) {
     List<MethodDecl> methods = isStatic ? clazz.staticMethods : clazz.instanceMethods;
 
-    MethodDecl method = methods.singleMatching((m) => m.name == name.name && _checkParamArgTypeMatch(m.type.parameters, args));
+    MethodDecl method = methods.singleMatching((m) => m.name == name.name && _checkParamArgTypeMatch(m.type.parameters, argTypes));
     addSubScope(new Scope.method(method.body));
     for(int i = 0; i < method.parameters.length; i++){
       newVariable(new Identifier(method.parameters[i].name), args[i]);
     }
   }
   
-  bool _checkParamArgTypeMatch(List<TypeNode> parameters, List<dynamic> args) {
+  bool _checkParamArgTypeMatch(List<TypeNode> parameters, List<TypeNode> args) {
     if(parameters.length != args.length)
       return false;
     
     for(int i = 0; i < parameters.length; i++){
       TypeNode p = parameters[i];
-      var a = args[i];
+      TypeNode a = args[i];
 
-      if(!p.sameType(a))
+      if(p != a)
         return false;
     }
     return true;
