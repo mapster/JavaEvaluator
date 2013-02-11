@@ -6,9 +6,9 @@ class ASTNode {
   final int startPos;
   final int endPos;
   final List<String> modifiers;
-  int nodeId = _counter++;
+  final int nodeId = _counter++;
   
-  ASTNode([this.startPos, this.endPos, this.modifiers]);
+  const ASTNode([this.startPos, this.endPos, this.modifiers]);
     
   ASTNode.fromJson(Map json) : this.startPos = json['startPos'], this.endPos = json['endPos'], this.modifiers = []{
     Map modifiersJson = json['modifiers']; 
@@ -102,7 +102,7 @@ class ClassDecl extends ASTNode {
 class Identifier extends ASTNode {
   final String name;
   
-  Identifier(this.name, [int startPos, int endPos]) : super(startPos, endPos);
+  const Identifier(this.name, [int startPos, int endPos]) : super(startPos, endPos);
   Identifier.fromJson(Map json) : name = json['value'], super.fromJson(json);
   
   int get hashCode => 17 * 37 + name.hashCode; 
@@ -225,7 +225,7 @@ class MethodType {
   
   const MethodType(this.returnType, this.parameters);
   
-  static final MethodType main = new MethodType(TypeNode.VOID, [TypeNode.STRING]);
+  static const MethodType main = const MethodType(TypeNode.VOID, const [const TypeNode.fixed(TypeNode.STRING)]);
   
   String toString() => "$parameters -> $returnType";
   
@@ -268,13 +268,14 @@ class TypeNode extends ASTNode {
       throw "Invalid type: ${type.runtimeType}";
     }
   }
+  const TypeNode.fixed(this.type) : super();
   
   bool get isPrimitive => type is String;
   bool get isArray => type is TypeNode;
   bool get isDeclared => type is Identifier;
   
-  static final TypeNode VOID = new TypeNode("VOID");
-  static final TypeNode STRING = new TypeNode(new Identifier("String"));
+  static const TypeNode VOID = const TypeNode.fixed("VOID");
+  static const TypeNode STRING = const TypeNode.fixed(const Identifier("String"));
   
   String toString(){
     if(isArray)
@@ -287,6 +288,7 @@ class TypeNode extends ASTNode {
   }
   
   bool operator==(other){
+    print("comparing: $this == $other");
     if(identical(other, this))
       return true;
     
