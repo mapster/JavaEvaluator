@@ -193,7 +193,7 @@ class MethodDecl extends ASTNode {
   
   MethodDecl(this.name, TypeNode returnType, List<Variable> parameters, this.body, [int startPos, int endPos]) : this.type = new MethodType(returnType, parameters.mappedBy((v) => v.type).toList()), 
                                                                                                             this.parameters = parameters, super(startPos, endPos);
-  MethodDecl.fromJson(Map json, returnType, parameters, this.body) : this.name = json['name'], this.type = new MethodType(returnType, parameters.mappedBy((v) => v.type).toList()), this.parameters = parameters, super.fromJson(json); 
+  MethodDecl.fromJson(Map json, TypeNode returnType, parameters, this.body) : this.name = json['name'], this.type = new MethodType(returnType, parameters.mappedBy((v) => v.type).toList()), this.parameters = parameters, super.fromJson(json); 
   
   String toString() {
     StringBuffer string = new StringBuffer("<div class=\"line\">${type.returnType} $name(");
@@ -229,7 +229,7 @@ class MethodType {
   
   String toString() => "$parameters -> $returnType";
   
-  bool operator==(other){
+  bool operator==(MethodType other){
     if(identical(other, this))
       return true;
     
@@ -287,12 +287,17 @@ class TypeNode extends ASTNode {
     return "$type";
   }
   
-  bool operator==(other){
+  bool operator==(TypeNode other){
     if(identical(other, this))
       return true;
     
-    TypeNode t = other;    
-    return type == t.type;
+    TypeNode t = other;
+    if((isArray && other.isArray) || 
+      (isPrimitive && other.isPrimitive) ||
+      (isDeclared && other.isDeclared))
+      return type == t.type;
+    
+    return false;
   }
   
   static const Map<String, PrimitiveValue> DEFAULT_VALUES = 
