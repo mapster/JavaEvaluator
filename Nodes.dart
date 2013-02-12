@@ -252,6 +252,12 @@ class NewArray extends ASTNode {
   NewArray.fromJson(Map json, this.type, this.dimensions) : super.fromJson(json);
 }
 
+class NewObject extends ASTNode {
+  final Identifier name;
+  
+  NewObject.fromJson(Map json, this.name) : super.fromJson(json);
+}
+
 class Return extends ASTNode {
   final dynamic expr;
   

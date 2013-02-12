@@ -34,3 +34,7 @@ div.arrow {
 .current {
   background-color: red;  
 }
+
+#environment .scope {
+  border: solid  
+}

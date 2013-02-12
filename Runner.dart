@@ -23,7 +23,7 @@ class Runner {
     while(!isDone())
       step();
     
-//    environment.loadMethod(new MemberSelect("main", new Identifier("MainTest")), [environment.newArray(0, null, const TypeNode.fixed(TypeNode.STRING))]);
+    environment.loadMethod(new MemberSelect("main", new Identifier("ObjectTest")), [environment.newArray(0, null, const TypeNode.fixed(TypeNode.STRING))]);
   }
   
   void loadClass(ClassDecl clazz) {
@@ -62,6 +62,8 @@ class Runner {
       return _evalAssignment(statement);
     else if(statement is NewArray)
       return _evalNewArray(statement);
+    else if(statement is NewObject)
+      return _evalNewObject(statement);
     else if(statement is int)
       return statement;
     else if(statement is If)
@@ -80,6 +82,8 @@ class Runner {
       return statement.value;
     else if(statement is ArrayAccess)
       return _evalArrayAccess(statement);
+    else if(statement is MemberSelect)
+      return _evalMemberSelect(statement);
     else throw "Statement type not supported yet: ${statement.runtimeType} '$statement'";
   }
   
@@ -113,6 +117,14 @@ class Runner {
       return _newArray(args.mappedBy((arg) => arg.value).toList(), value, 
           newArray.dimensions.reduce(type, (TypeNode r, e) => new TypeNode(r)));
     }, newArray.dimensions.toList());
+  }
+  
+  _evalNewObject(NewObject newObject){
+    return new EvalTree(newObject, this, (List args){
+      ReferenceValue ref = environment.newClassInstance(environment.lookUpClass(newObject.name));
+      environment.loadEnv(ref);
+      return ref;
+    }, []).execute();
   }
 
   _evalMethodCall(MethodCall call) {
@@ -170,8 +182,25 @@ class Runner {
     }
     else if(assign.id is Identifier)
       return new EvalTree(assign, this, (List args) => environment.assign(assign.id, args.first),[assign.expr]).execute();
+    else if(assign.id is MemberSelect){
+      MemberSelect select = assign.id;
+      return new EvalTree(assign, this, (List args){
+        environment.loadEnv(args[1]);
+        environment.assign(select.member_id, args[0]);
+        environment.unloadEnv();
+      }, [assign.expr, select.owner]).execute();
+    }
     else
       throw "Don't know how to assign to ${assign.id.runtimeType}: ${assign.id.toString()}";
+  }
+  
+  _evalMemberSelect(MemberSelect select){
+    return new EvalTree(select, this, (List args){
+      environment.loadEnv(args[0]);
+      ReferenceValue ref = environment.lookUpValue(select.member_id);
+      environment.unloadEnv();
+      return ref;
+    }, [select.owner]).execute();
   }
 
   _evalVariable(Variable variable) {

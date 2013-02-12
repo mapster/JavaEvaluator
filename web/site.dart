@@ -59,7 +59,9 @@ postSourceToJsonService(String data){
   
   req.onReadyStateChange.listen((Event e){
       if(req.readyState == HttpRequest.DONE && (req.status == 200 || req.status == 0)){
+        print("parsing");
         prog = (new Program(parse(req.responseText)));
+        print("intializing runner");
         runner = new Runner(prog);
         java.children[0] = Printer.toHtml(prog.root.first);
         stepBtn.disabled = false;
@@ -75,45 +77,19 @@ postSourceToJsonService(String data){
 }
 
 void printEnv(){
+  DivElement root = new DivElement();
   HeadingElement hValues = new HeadingElement.h3();
   hValues.text = "Values";
   DivElement values = new DivElement();
   values.children = runner.environment.values.keys.mappedBy((key){
     DivElement val = new DivElement();
-    val.text = "$key: ${runner.environment.values[key]}";
+    var v = runner.environment.values[key];
+    val.text = "$key: ${runner.environment.typeOf(v)} => $v";
     return val;
   }).toList();
+  root.children = [hValues, values];
 
-  HeadingElement hStatic= new HeadingElement.h3();
-  hStatic.text = "Static Context";
-  DivElement staticContext = new DivElement();
-  staticContext.children = runner.environment.staticContext.assignments.keys.mappedBy((Identifier scID) {
-    ClassScope sc = runner.environment.values[runner.environment.staticContext.lookUp(scID)];
-    DivElement clazz = new DivElement();
-    HeadingElement name = new HeadingElement.h4();
-    name.text = sc.clazz.name;
-    clazz.children.add(name);
-    clazz.children.addAll(sc.assignments.keys.mappedBy((Identifier id){
-      DivElement assign = new DivElement();
-      assign.text = "$id: ${sc.assignments[id]}";
-      return assign;
-    }).toList());
-    return clazz;
-  }).toList();
-//  HeadingElement hAssigns = new HeadingElement.h3();
-//  hAssigns.text = "Assignments";
-//  DivElement assigns = new DivElement();
-//  assigns.children = runner.environment.assignments.mappedBy((Map<Identifier, int> map){
-//    DivElement scope = new DivElement();
-//    scope.children = map.keys.mappedBy((key){
-//      DivElement assign = new DivElement();
-//      assign.text = "$key: ${map[key]}";
-//      return assign;
-//    }).toList();
-//    return scope;
-//  }).toList();
-
-  environment.children = [hValues, values, hStatic, staticContext];
+  environment.children = [root, Printer.scopeToHtml(runner.environment.currentScope)];
 }
 
 //void drawArrow(Pos p1, Pos p2, num width){

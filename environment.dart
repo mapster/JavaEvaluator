@@ -53,6 +53,13 @@ class Environment {
     return _newValue(scope);
   }
   
+  ClassDecl lookUpClass(name){
+    if(name is Identifier){
+      return values[staticContext.lookUp(name)].clazz;
+    }
+    else throw "Don't know how to look up class using ${name.runtimeType}."; 
+  }
+  
   ReferenceValue newArray(int size, Value value, TypeNode type) {
     return _newValue(new Array(size, value, type));
   }
@@ -223,14 +230,15 @@ class ClassScope extends Scope {
   Scope get currentScope => _subscopes.isEmpty ? this : _subscopes.last.currentScope;
   
   ClassScope(this.clazz, this.isStatic) : super.block([]){
-    if(isStatic){
-      _statements.addAll(clazz.staticVariables);
-    }
+    var vars = isStatic ? clazz.staticVariables : clazz.instanceVariables;
+    print(vars);
+    _statements.addAll(vars);
   }
   
   String toString() {
-    var local = super.toString();
-    return "$local${_subscopes.isEmpty ? "" : ", ${_subscopes.reduce("", (r, e) => "$r, $e")}"}";
+//    var local = super.toString();
+//    return "$local${_subscopes.isEmpty ? "" : ", ${_subscopes.reduce("", (r, e) => "$r, $e")}"}";
+    return "$assignments";
   }
   
 

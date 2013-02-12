@@ -19,7 +19,7 @@ class Printer {
     
     return ele;
   }
-  
+
   static Element toHtml(ASTNode node){
     DivElement root = new DivElement();
     root.attributes['id'] = "javasource";
@@ -60,6 +60,9 @@ class Printer {
     }
     else if(astNode is NewArray){
       return _newArrayToHtml(astNode, newLine); 
+    }
+    else if(astNode is NewObject){
+      return _newObjectToHtml(astNode, newLine);
     }
     else if(astNode is Return){
       return _returnToHtml(astNode, newLine);
@@ -142,7 +145,13 @@ class Printer {
   
   static List<Element> _literalToHtml(Literal node, bool newLine) => [_newElement(newLine:newLine, nodeid:node.nodeId, text:"${node}")];
 
-  static List<Element> _memberSelectToHtml(MemberSelect node, bool newLine) => [_newElement(newLine:newLine, nodeid:node.nodeId, text:node.toString())];
+  static List<Element> _memberSelectToHtml(MemberSelect node, bool newLine){
+    Element element = _newElement(nodeid:node.nodeId, newLine:newLine);
+    element.children.addAll(_toHtml(node.owner, false));
+    element.children.add(_newElement(text:"."));
+    element.children.addAll(_toHtml(node.member_id, false));
+    return [element];
+  }
 
   static List<Element> _methodCallToHtml(MethodCall node, bool newLine) {
     Element element = _newElement(nodeid:node.nodeId, newLine:newLine);
@@ -194,6 +203,14 @@ class Printer {
     
     return [element];
   }
+  
+  static List<Element> _newObjectToHtml(NewObject node, bool newLine){
+    Element element = _newElement(nodeid:node.nodeId, newLine:newLine);
+    element.children.add(_newElement(keyword:true, text:"new "));
+    element.children.addAll(_toHtml(node.name, false));
+    element.children.add(_newElement(text:"()"));
+    return [element];
+  }
 
   static List<Element> _returnToHtml(Return node, bool newLine) {
     Element element = _newElement(nodeid:node.nodeId, newLine:newLine);
@@ -236,4 +253,29 @@ class Printer {
     return r;
   }
   
+  static scopeToHtml(Scope sc){
+    DivElement root = new DivElement();
+    root.classes.add("scope");
+    if(sc is ClassScope){
+      HeadingElement title = new HeadingElement.h4();
+      title.text = "${sc.clazz.name}";
+      root.children.add(title);
+      root.children.addAll(sc.assignments.keys.map((id) => _envAssignToHtml(id, sc)).toList());
+      DivElement subscopes = new DivElement();
+      subscopes.children.addAll(sc._subscopes.map(scopeToHtml).toList());
+      root.children.add(subscopes);
+    }
+    else {
+      root.children.addAll(sc.assignments.keys.map((id) => _envAssignToHtml(id, sc)).toList());
+      if(sc._subscope != null)
+        root.children.add(scopeToHtml(sc._subscope));
+    }
+    return root;
+  }
+  
+  static _envAssignToHtml(Identifier id, Scope sc){
+    DivElement assign = new DivElement();
+    assign.text = "$id: ${sc.assignments[id]}";
+    return assign;
+  }
 }
