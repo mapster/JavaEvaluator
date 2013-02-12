@@ -169,6 +169,7 @@ class MemberSelect extends ASTNode {
   
   MemberSelect(final member_id, this.owner, [int startPos, int endPos]) : this.member_id = new Identifier(member_id), super(startPos, endPos);
   MemberSelect.fromJson(Map json, this.owner) : this.member_id = new Identifier(json['member_id']), super.fromJson(json);
+  const MemberSelect.mainMethod(this.owner) : member_id = const Identifier("main");
   
   String toString() => "$owner.$member_id";
 }

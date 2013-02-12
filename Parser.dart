@@ -13,7 +13,7 @@ part 'types.dart';
 class Program {
   List root;
   Map<String, ClassDecl> classDeclarations = {};
-  MethodDecl main;
+  MemberSelect mainSelector;
   
   Program(List<Map<String, dynamic>> ast) {
     root = ast.mappedBy(parseObject).toList();
@@ -75,16 +75,15 @@ class Program {
 
   parseMethod(Map json) {
     MethodDecl method = new MethodDecl.fromJson(json, new TypeNode(parseObject(json['type'])), json['parameters'].mappedBy(parseObject).toList(), json['body']['statements'].mappedBy(parseObject).toList());
-    
-    if(method.name == "main" && method.type == MethodType.main){
-      this.main = method;
-    }
-    
     return method;
   }
   
   ClassDecl parseClass(Map json){
     ClassDecl clazz = new ClassDecl.fromJson(json, json['members'].mappedBy(parseObject).toList());
+    //if class has a main method, create a selector for it
+    if(clazz.staticMethods.any((MethodDecl m) => m.name == "main" && m.type == MethodType.main))
+      this.mainSelector = new MemberSelect.mainMethod(new Identifier(clazz.name));
+    
     this.classDeclarations[clazz.name] = clazz;
     return clazz;  
   }

@@ -23,7 +23,8 @@ class Runner {
     while(!isDone())
       step();
     
-    environment.loadMethod(new MemberSelect("main", new Identifier("ObjectTest")), [environment.newArray(0, null, const TypeNode.fixed(TypeNode.STRING))]);
+    if(program.mainSelector != null)
+      environment.loadMethod(program.mainSelector, [environment.newArray(0, null, const TypeNode.fixed(TypeNode.STRING))]);
   }
   
   void loadClass(ClassDecl clazz) {
