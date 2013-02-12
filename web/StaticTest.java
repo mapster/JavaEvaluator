@@ -29,7 +29,7 @@ class StaticTest {
         return tall2;
     }
 
-    public static void main(String[] args){
+/*    public static void main(String[] args){
         System.out.println(mult);
         System.out.println(tall2);
         System.out.println(tall0);
@@ -39,7 +39,7 @@ class StaticTest {
         System.out.println(d1);
         System.out.println(tall4);
     }
-
+*/
 
 }
 
