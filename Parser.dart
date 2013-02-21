@@ -55,7 +55,7 @@ class Program {
       case 'new_array':
         return new NewArray.fromJson(json, new TypeNode(parseObject(json['type'])), json['dimensions'].map(parseObject).toList());
       case 'new':
-        return new NewObject.fromJson(json, parseObject(json['name']));
+        return new NewObject.fromJson(json, parseObject(json['name']), json['arguments'].map(parseObject).toList());
       case 'return':
         return new Return.fromJson(json, parseObject(json['expr']));
       default:

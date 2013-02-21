@@ -165,8 +165,9 @@ class Printer {
   static List<Element> _methodDeclToHtml(MethodDecl node, bool newLine) {
     DivElement header = _newElement(newLine:newLine, nodeid:node.nodeId);
     header.children.addAll(node.modifiers.mappedBy((m) => _newElement(text:"$m ", keyword: true)).toList());
-    header.children.addAll(_toHtml(node.type.returnType, false));
-    header.children.add(_newElement(text:" ${node.name}("));
+    if(node.type.returnType.type != null)
+      header.children.addAll(_toHtml(node.type.returnType, false));
+    header.children.add(_newElement(text:" ${node.publicName}("));
     header.children.addAll(node.parameters.mappedBy((p) => _toHtml(p, false)).toList().reduce(new List<Element>(), _reduceCommaSeparated));
     header.children.add(_newElement(text:") {"));
     
@@ -208,7 +209,9 @@ class Printer {
     Element element = _newElement(nodeid:node.nodeId, newLine:newLine);
     element.children.add(_newElement(keyword:true, text:"new "));
     element.children.addAll(_toHtml(node.name, false));
-    element.children.add(_newElement(text:"()"));
+    element.children.add(_newElement(text:"("));
+    element.children.addAll(node.arguments.map((arg) => _toHtml(arg, false)).toList().reduce(new List<Element>(), _reduceCommaSeparated));
+    element.children.add(_newElement(text:")"));
     return [element];
   }
 

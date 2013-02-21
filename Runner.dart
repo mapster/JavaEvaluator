@@ -122,10 +122,10 @@ class Runner {
   
   _evalNewObject(NewObject newObject){
     return new EvalTree(newObject, this, (List args){
-      ReferenceValue ref = environment.newClassInstance(environment.lookUpClass(newObject.name));
+      ReferenceValue ref = environment.newObject(environment.lookUpClass(newObject.name), args);
       environment.loadEnv(ref);
       return ref;
-    }, []).execute();
+    }, newObject.arguments).execute();
   }
 
   _evalMethodCall(MethodCall call) {

@@ -53,6 +53,13 @@ class Environment {
     return _newValue(scope);
   }
   
+  ReferenceValue newObject(ClassDecl clazz, List<Value> args){
+    ClassScope scope = new ClassScope(clazz, false);
+    scope._statements.addAll(clazz.instanceVariables);
+    scope.loadConstructor(args, args.map(typeOf).toList());
+    return _newValue(scope);
+  }
+  
   ClassDecl lookUpClass(name){
     if(name is Identifier){
       return values[staticContext.lookUp(name)].clazz;
@@ -223,6 +230,7 @@ class Scope {
 }
 
 class ClassScope extends Scope {
+  Scope _constructor;
   final List<Scope> _subscopes = new List<Scope>();
   final ClassDecl clazz;
   final bool isStatic;
@@ -230,9 +238,8 @@ class ClassScope extends Scope {
   Scope get currentScope => _subscopes.isEmpty ? this : _subscopes.last.currentScope;
   
   ClassScope(this.clazz, this.isStatic) : super.block([]){
-    var vars = isStatic ? clazz.staticVariables : clazz.instanceVariables;
-    print(vars);
-    _statements.addAll(vars);
+    if(isStatic)
+      _statements.addAll(clazz.staticVariables);
   }
   
   String toString() {
@@ -241,7 +248,6 @@ class ClassScope extends Scope {
     return "$assignments";
   }
   
-
   addSubScope(Scope s) => _subscopes.add(s);
   addSubBlock(Scope s) => _subscopes.last.addSubScope(s);
   
@@ -285,10 +291,17 @@ class ClassScope extends Scope {
     //else pop own statement.
     if(!super.isDone)
       return super.popStatement();
+    
+    //check if constructor is still running
+    if(!_constructor.isDone)
+      return _constructor.popStatement();
   }
   
   bool get isDone {
     if(_subscopes.any((Scope sc) => !sc.isDone))
+      return false;
+    
+    if(_constructor != null && !_constructor.isDone)
       return false;
     
     return super.isDone;
@@ -301,6 +314,20 @@ class ClassScope extends Scope {
     addSubScope(new Scope.method(method.body));
     for(int i = 0; i < method.parameters.length; i++){
       newVariable(new Identifier(method.parameters[i].name), args[i]);
+    }
+  }
+  
+  void loadConstructor(List<Value> args, List<TypeNode> argTypes){
+    if(args.isEmpty){
+      if(!clazz.constructors.isEmpty)
+        throw "The empty constructor is undefined!";
+      return;
+    }
+      
+    MethodDecl method = clazz.constructors.singleMatching((m) => _checkParamArgTypeMatch(m.type.parameters, argTypes));
+    _constructor = new Scope.method(method.body);
+    for(int i = 0; i < method.parameters.length; i++){
+      _constructor.newVariable(new Identifier(method.parameters[i].name), args[i]);
     }
   }
   

@@ -6,11 +6,11 @@ class ASTNode {
   final int startPos;
   final int endPos;
   final List<String> modifiers;
-  final int nodeId = _counter++;
+  final int nodeId;
   
-  const ASTNode([this.startPos, this.endPos, this.modifiers]);
+  const ASTNode({this.startPos, this.endPos, this.modifiers, this.nodeId: -1});
     
-  ASTNode.fromJson(Map json) : this.startPos = json['startPos'], this.endPos = json['endPos'], this.modifiers = []{
+  ASTNode.fromJson(Map json) : this.nodeId = _counter++, this.startPos = json['startPos'], this.endPos = json['endPos'], this.modifiers = []{
     Map modifiersJson = json['modifiers']; 
     if(modifiersJson != null && modifiersJson.containsKey('modifiers')){
       if(modifiersJson['modifiers'] is List)
@@ -35,7 +35,7 @@ class Assignment extends ASTNode {
   final ASTNode id;
   final expr;
 
-  Assignment(this.id, this.expr, [int startPos, int endPos]) : super(startPos, endPos);
+//  Assignment(this.id, this.expr, [int startPos, int endPos]) : super(startPos, endPos);
   Assignment.fromJson(Map json, this.id, this.expr) : super.fromJson(json);
   
   String toString() => "$id = $expr";
@@ -52,7 +52,7 @@ class BinaryOp extends ASTNode {
   final left;
   final right;
   
-  BinaryOp(this.type, this.left, this.right, [int startPos, int endPos]) : super(startPos, endPos);
+//  BinaryOp(this.type, this.left, this.right, [int startPos, int endPos]) : super(startPos, endPos);
   BinaryOp.fromJson(Map json, this.left, this.right) : this.type = json['type'], super.fromJson(json);
   
   bool operator==(other){
@@ -89,6 +89,7 @@ class ClassDecl extends ASTNode {
   final List<Variable> staticVariables;
   final List<MethodDecl> instanceMethods;
   final List<MethodDecl> staticMethods;
+  final List<MethodDecl> constructors;
   final List<ASTNode> members;
   
   ClassDecl.fromJson(Map json, List<ASTNode> members) : this.name = json['name'],this.members = members, 
@@ -96,13 +97,16 @@ class ClassDecl extends ASTNode {
                                       this.instanceMethods = members.where((m) => !m.isStatic() && m is MethodDecl).toList(),
                                       this.staticVariables = members.where((v) => v.isStatic() && v is Variable).toList(),
                                       this.instanceVariables = members.where((v) => !v.isStatic() && v is Variable).toList(),
-                                      super.fromJson(json);
+                                      this.constructors = members.where((m) => m is MethodDecl && m.isConstructor).toList(),
+                                      super.fromJson(json){
+    this.constructors.forEach((m) => m.publicName = name);
+  }
 }
 
 class Identifier extends ASTNode {
   final String name;
   
-  const Identifier(this.name, [int startPos, int endPos]) : super(startPos, endPos);
+  const Identifier(this.name, [int startPos, int endPos]) : super(startPos:startPos, endPos:endPos);
   Identifier.fromJson(Map json) : name = json['value'], super.fromJson(json);
   
   int get hashCode => 17 * 37 + name.hashCode; 
@@ -167,7 +171,7 @@ class MemberSelect extends ASTNode {
   final Identifier member_id;
   final ASTNode owner;
   
-  MemberSelect(final member_id, this.owner, [int startPos, int endPos]) : this.member_id = new Identifier(member_id), super(startPos, endPos);
+//  MemberSelect(final member_id, this.owner, [int startPos, int endPos]) : this.member_id = new Identifier(member_id), super(startPos, endPos);
   MemberSelect.fromJson(Map json, this.owner) : this.member_id = new Identifier(json['member_id']), super.fromJson(json);
   const MemberSelect.mainMethod(this.owner) : member_id = const Identifier("main");
   
@@ -178,46 +182,38 @@ class MethodCall extends ASTNode {
   final ASTNode select;
   final List<dynamic> arguments;
   
-  MethodCall(this.select, this.arguments, [int startPos, int endPos]) : super(startPos, endPos);
+//  MethodCall(this.select, this.arguments, [int startPos, int endPos]) : super(startPos, endPos);
   MethodCall.fromJson(Map json, this.select, this.arguments) : super.fromJson(json);
   
-  MethodCall.main(this.arguments) : super(0,0), this.select = new MemberSelect("main", new Identifier("Mains"));
+//  MethodCall.main(this.arguments) : super(), this.select = const MemberSelect("main", new Identifier("Mains"));
   
   String toString() => "$select()"; 
 }
 
 class MethodDecl extends ASTNode {
-  final String name;
+  static const String CONSTRUCTOR_NAME = "<init>";
+  
+  final String _name;
+  String _publicName;
   final MethodType type;
   final List<Variable> parameters;
   final List body;
   
-  MethodDecl(this.name, TypeNode returnType, List<Variable> parameters, this.body, [int startPos, int endPos]) : this.type = new MethodType(returnType, parameters.mappedBy((v) => v.type).toList()), 
-                                                                                                            this.parameters = parameters, super(startPos, endPos);
-  MethodDecl.fromJson(Map json, TypeNode returnType, parameters, this.body) : this.name = json['name'], this.type = new MethodType(returnType, parameters.mappedBy((v) => v.type).toList()), this.parameters = parameters, super.fromJson(json); 
+  MethodDecl(this._name, TypeNode returnType, List<Variable> parameters, this.body, [int startPos, int endPos]) : this.type = new MethodType(returnType, parameters.mappedBy((v) => v.type).toList()), 
+                                                                                                            this.parameters = parameters, super(startPos:startPos, endPos:endPos);
+  MethodDecl.fromJson(Map json, TypeNode returnType, parameters, this.body) : this._name = json['name'], this.type = new MethodType(returnType, parameters.mappedBy((v) => v.type).toList()), this.parameters = parameters, super.fromJson(json); 
   
-  String toString() {
-    StringBuffer string = new StringBuffer("<div class=\"line\">${type.returnType} $name(");
-    string.add(
-        parameters.reduce("", (r,m){
-          if(!r.isEmpty)
-            r = "$r, ";
-          return "$r$m";
-        })
-    );
-    string.add("){</div>");
-    string.add(body.reduce("", (r,m) => "$r<div class=\"line\">$m;</div>"));
-    string.add("<div class=\"line\">}</div>");
-    return string.toString();
-  }
+  bool get isConstructor => !isStatic() && _name == CONSTRUCTOR_NAME;
+  String get name => _name;
+         set publicName(String name) => _publicName = name;
+  String get publicName => _publicName != null ? _publicName : name;
   
   bool operator==(other){
     if(identical(other, this))
       return true;
     
-    return name == other.name && type == other.type; 
+    return _name == other._name && type == other.type; 
   }
-  
 }
 
 class MethodType {
@@ -255,8 +251,9 @@ class NewArray extends ASTNode {
 
 class NewObject extends ASTNode {
   final Identifier name;
+  final List<ASTNode> arguments;
   
-  NewObject.fromJson(Map json, this.name) : super.fromJson(json);
+  NewObject.fromJson(Map json, this.name, this.arguments) : super.fromJson(json);
 }
 
 class Return extends ASTNode {
@@ -271,7 +268,7 @@ class TypeNode extends ASTNode {
   final type;
 
   TypeNode(this.type) {
-    if(!(type is String || type is TypeNode || type is Identifier)){
+    if(!(type is String || type is TypeNode || type is Identifier || type == null)){
       throw "Invalid type: ${type.runtimeType}";
     }
   }
@@ -317,7 +314,7 @@ class Variable extends ASTNode {
   final TypeNode type;
   final initializer;
   
-  Variable(this.name, this.type, this.initializer, [int startPos, int endPos, List<String> modifiers]) : super(startPos, endPos, modifiers);
+//  Variable(this.name, this.type, this.initializer, [int startPos, int endPos, List<String> modifiers]) : super(startPos, endPos, modifiers);
   Variable.fromJson(Map json, this.type, this.initializer) : name = json['name'], super.fromJson(json);
   
   int get hashCode => 17 * 37 + name.hashCode; 
