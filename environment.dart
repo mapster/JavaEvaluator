@@ -38,25 +38,25 @@ class Environment {
     return values[array][index];
   }
   
-  Value lookup(Identifier name){
+  Value lookupVariable(Identifier name){
     //Check in current class instance for the variable (both static and instance)
-    Value val = instanceStack.last.lookup(name);
-    if(val != null)
-      return val;
-    
-    //check for a package of that name
-    return defaultPackage.getPackage(name);
+    return  instanceStack.last.lookupVariable(name);
   }
   
   Value lookupIn(Identifier name, ReferenceValue envRef){
     return values[envRef].lookup(name);
   }
   
-  ClassDecl lookupClass(Identifier name){
-    clazz = instanceStack.last.lookupClass(name);
-    if(clazz != null)
-      return clazz;
+  dynamic lookupContainer(Identifier name, {ReferenceValue inContainer}){
+    var lookupIn = instanceStack.last; 
+    if(?inContainer)
+      lookupIn = values[inContainer];
     
+    var found = lookupIn.lookupContainer(name);
+    if(found != null)
+      return found;
+    
+    return defaultPackage.lookupContainer(name);
   }
   
   /**
@@ -393,7 +393,7 @@ abstract class Scope {
     _variables[name] = value;
   }
   
-  Value _lookup(Identifier name){
+  Value _lookupVariable(Identifier name){
     return _variables[name];
   }
   
@@ -408,7 +408,7 @@ abstract class Scope {
   void addBlock(BlockScope block);
   void newVariable(Identifier name, [Value value=ReferenceValue.invalid]);
   bool assign(Identifier name, Value value);
-  Value lookup(Identifier name);
+  Value lookupVariable(Identifier name);
   dynamic popStatement();
   void pushStatement(dynamic statement);
 }
@@ -417,6 +417,7 @@ abstract class ClassScope extends Scope {
   List<BlockScope> _methodStack = new List<BlockScope>();
   
   List<MethodDecl> get methodDeclarations;
+  Map<Identifier, dynamic> get _namespaceClasses;
   Package get package;
   bool  get isDone {
     if(_methodStack.any((sc) => !sc.isDone))
@@ -457,14 +458,18 @@ abstract class ClassScope extends Scope {
       return super._assign(name, value);
   }
   
-  Value lookup(Identifier name){
+  Value lookupVariable(Identifier name){
     if(!_methodStack.isEmpty){
-      Value val = _methodStack.last.lookup(name);
+      Value val = _methodStack.last.lookupVariable(name);
       if(val != null)
         return val;
     }
     
-    return super._lookup(name);
+    return super._lookupVariable(name);
+  }
+  
+  dynamic lookupContainer(Identifier name){
+    return _namespaceClasses[name];
   }
   
   dynamic popStatement(){
@@ -525,14 +530,14 @@ class BlockScope extends Scope {
     return super._assign(name, value);
   }
   
-  Value lookup(Identifier name){
+  Value lookupVariable(Identifier name){
     if(_subBlock != null){
-      Value val = _subBlock.lookup(name);
+      Value val = _subBlock.lookupVariable(name);
       if(val != null)
         return val;
     }
     
-    return super._lookup(name);
+    return super._lookupVariable(name);
   }
   
   dynamic popStatement(){
@@ -559,43 +564,24 @@ class StaticClass extends ClassScope {
   final Map<Identifier, ReferenceValue> _localClasses = new Map<Identifier, ReferenceValue>();
   final Package package;
   List<MethodDecl> get methodDeclarations => _declaration.staticMethods;
+  Map<Identifier, dynamic> _namespaceClasses = new Map<Identifier, dynamic>();
   
   StaticClass(Package this.package, ClassDecl this._declaration, List<dynamic> statements) : super(statements);
-  
-  Value lookup(Identifier name){
-    //first check current block (and parents) and locally declared
-    Value val= super.lookup(name);
-    if(val != null)
-      return val;
-    
-    //then check imports
-    return _localClasses[name];
-  }
 }
 
 class ClassInstance extends ClassScope {
   final StaticClass _static;
   Package get package => _static.package;
+  Map<Identifier, dynamic> get _namespaceClasses => _static._namespaceClasses; 
   List<MethodDecl> get methodDeclarations => new List<MethodDecl>()
       ..addAll(_static._declaration.staticMethods)..addAll(_static._declaration.instanceMethods);
   
   ClassInstance(StaticClass this._static, List<dynamic> statements) : super(statements);
   
-  Value lookup(Identifier name){
-    //first check current block (and parents) and locally declared
-    Value val= super.lookup(name);
-    if(val != null)
-      return val;
-    
-    //then check statically declared, and imports
-    return _static.lookup(name);
-  }
 }
 
 class Package {
-  final Map<Identifier, ReferenceValue> _packages = new Map<Identifier, ReferenceValue>();
-  final Map<Identifier, ReferenceValue> _memberClasses = new Map<Identifier, ReferenceValue>();
+  final Map<Identifier, ReferenceValue> _members = new Map<Identifier, ReferenceValue>();
   
-  ReferenceValue getPackage(Identifier name) => _packages[name];
-  ReferenceValue getClass(Identifier name) => _memberClasses[name];
+  ReferenceValue lookupContainer(Identifier name) => _members[name];
 }
