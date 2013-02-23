@@ -3,34 +3,30 @@ part of JavaEvaluator;
 class Environment {
   int _counter = 0;
   final Map<ReferenceValue, dynamic> values = new Map<ReferenceValue, dynamic>();
-  Scope staticContext = new Scope.block([]);
-  List<ClassScope> contextStack = [];
+  final List<ClassScope> instanceStack = new List<ClassScope>();
+  final Package defaultPackage = new Package();
   
-  ClassScope get currentContext => contextStack.last;
-  Scope get currentScope => currentContext.currentScope;
-  
-  void addBlockScope(statements) => currentContext.addSubBlock(new Scope.block(statements));
+  void addBlock(List statements) => instanceStack.last.addBlock(new BlockScope(statements));
   
   dynamic popStatement(){
-    while(currentContext.isDone)
-      contextStack.removeLast();
-    return currentContext.popStatement();
+    while(!instanceStack.isEmpty && instanceStack.last.isDone)
+      instanceStack.removeLast();
+    return instanceStack.last.popStatement();
   }
   
   bool get isDone {
-    if(contextStack.isEmpty)
+    if(instanceStack.isEmpty)
       return true;
-    return contextStack.every((s) => s.isDone);
+    if(instanceStack.any((ClassScope sc) => !sc.isDone))
+      return false;
   }
   
-  String toString() => "$contextStack";
-  
   void newVariable(Identifier name, [Value value = ReferenceValue.invalid]){
-    currentContext.newVariable(name, value);
+    instanceStack.last.newVariable(name, value);
   }
   
   void assign(Identifier name, Value value){
-    if(!currentContext.assign(name, value))
+    if(!instanceStack.last.assign(name, value))
       throw "Variable $name not declared in current scope!";
   }
   
@@ -41,94 +37,116 @@ class Environment {
   Value getArrayValue(ReferenceValue array, int index){
     return values[array][index];
   }
+  
+  Value lookup(Identifier name){
+    //Check in current class instance for the variable (both static and instance)
+    Value val = instanceStack.last.lookup(name);
+    if(val != null)
+      return val;
+    
+    //check for a package of that name
+    return defaultPackage.getPackage(name);
+  }
+  
+  Value lookupIn(Identifier name, ReferenceValue envRef){
+    return values[envRef].lookup(name);
+  }
+  
+  ClassDecl lookupClass(Identifier name){
+    clazz = instanceStack.last.lookupClass(name);
+    if(clazz != null)
+      return clazz;
+    
+  }
+  
   /**
    * Initializes a class instance, i.e. stores all fields with an initial value in memory and returns the class environment.
    */
   //TODO potential mess with primitive values
-  ReferenceValue newClassInstance(ClassDecl clazz, [bool static = false]){
-    ClassScope scope = new ClassScope(clazz, static);
-    if(static)
-      staticContext.newVariable(new Identifier(clazz.name),_newValue(scope));
-    
-    return _newValue(scope);
-  }
-  
-  ReferenceValue newObject(ClassDecl clazz, List<Value> args){
-    ClassScope scope = new ClassScope(clazz, false);
-    scope._statements.addAll(clazz.instanceVariables);
-    scope.loadConstructor(args, args.map(typeOf).toList());
-    return _newValue(scope);
-  }
-  
-  ClassDecl lookUpClass(name){
-    if(name is Identifier){
-      return values[staticContext.lookUp(name)].clazz;
-    }
-    else throw "Don't know how to look up class using ${name.runtimeType}."; 
-  }
-  
-  ReferenceValue newArray(int size, Value value, TypeNode type) {
-    return _newValue(new Array(size, value, type));
-  }
-  
-  Value lookUpValue(variable){
-    bool loadedEnv = false;
-    if(variable is MemberSelect){
-      loadedEnv = loadEnv(lookUpValue(variable.owner));
-      variable = variable.member_id;
-    }
-    
-    if(variable is! Identifier)
-      throw "Can't lookup value by using ${variable.runtimeType}";
-    
-    //TODO add static context! (it may have been added?)      
-    Value val = currentContext.lookUp(variable);
-    
-    if(val == null){
-      if(loadedEnv)
-        throw "Variable [${variable.name}] not declared.";
-        
-      val = staticContext.lookUp(variable);
-    }
-    
-    if(loadedEnv)
-      unloadEnv();
-      
-    return val;
-  }
-  
-  ReferenceValue _newValue(dynamic value){
-    ReferenceValue addr = new ReferenceValue(++_counter);
-    values[addr] = value;
-    return addr;
-  }
-  
-  void loadMethod(select, List args) {
-    if(select is MemberSelect){
-      loadEnv(lookUpValue(select.owner));
-      select = select.member_id;
-    }
-    currentContext.loadMethod(select, args, args.map(typeOf).toList());
-  }
-  
-  void methodReturn(){
-    currentContext.methodReturn();
-  }
-  
-  bool loadEnv(dynamic env){
-    if(env is ReferenceValue)
-      env = values[env];
-    
-    if(env is! ClassScope)
-      throw "Can only load class scope as primary environment!";
-    
-    contextStack.addLast(env);
-    return true;
-  }
-  
-  void unloadEnv(){
-    contextStack.removeLast();
-  }
+//  ReferenceValue newClassInstance(ClassDecl clazz, [bool static = false]){
+//    ClassScope scope = new ClassScope(clazz, static);
+//    if(static)
+//      staticContext.newVariable(new Identifier(clazz.name),_newValue(scope));
+//    
+//    return _newValue(scope);
+//  }
+//  
+//  ReferenceValue newObject(ClassDecl clazz, List<Value> args){
+//    ClassScope scope = new ClassScope(clazz, false);
+//    scope._statements.addAll(clazz.instanceVariables);
+//    scope.loadConstructor(args, args.map(typeOf).toList());
+//    return _newValue(scope);
+//  }
+//  
+//  ClassDecl lookUpClass(name){
+//    if(name is Identifier){
+//      return values[staticContext.lookUp(name)].clazz;
+//    }
+//    else throw "Don't know how to look up class using ${name.runtimeType}."; 
+//  }
+//  
+//  ReferenceValue newArray(int size, Value value, TypeNode type) {
+//    return _newValue(new Array(size, value, type));
+//  }
+//  
+//  Value lookUpValue(variable){
+//    bool loadedEnv = false;
+//    if(variable is MemberSelect){
+//      loadedEnv = loadEnv(lookUpValue(variable.owner));
+//      variable = variable.member_id;
+//    }
+//    
+//    if(variable is! Identifier)
+//      throw "Can't lookup value by using ${variable.runtimeType}";
+//    
+//    //TODO add static context! (it may have been added?)      
+//    Value val = currentContext.lookUp(variable);
+//    
+//    if(val == null){
+//      if(loadedEnv)
+//        throw "Variable [${variable.name}] not declared.";
+//        
+//      val = staticContext.lookUp(variable);
+//    }
+//    
+//    if(loadedEnv)
+//      unloadEnv();
+//      
+//    return val;
+//  }
+//  
+//  ReferenceValue _newValue(dynamic value){
+//    ReferenceValue addr = new ReferenceValue(++_counter);
+//    values[addr] = value;
+//    return addr;
+//  }
+//  
+//  void loadMethod(select, List args) {
+//    if(select is MemberSelect){
+//      loadEnv(lookUpValue(select.owner));
+//      select = select.member_id;
+//    }
+//    currentContext.loadMethod(select, args, args.map(typeOf).toList());
+//  }
+//  
+//  void methodReturn(){
+//    currentContext.methodReturn();
+//  }
+//  
+//  bool loadEnv(dynamic env){
+//    if(env is ReferenceValue)
+//      env = values[env];
+//    
+//    if(env is! ClassScope)
+//      throw "Can only load class scope as primary environment!";
+//    
+//    contextStack.addLast(env);
+//    return true;
+//  }
+//  
+//  void unloadEnv(){
+//    contextStack.removeLast();
+//  }
   
   TypeNode typeOf(dynamic val){
     if(val is ReferenceValue)
@@ -158,190 +176,426 @@ class Array {
   String toString() => _list.toString();
 }
 
-class Scope {
-  final Map<Identifier, Value> assignments = new Map<Identifier, Value>();
-  final List<dynamic> _statements = [];
-  final bool isMethod;
-  Scope _subscope;
+//class Scope {
+//  final Map<Identifier, Value> assignments = new Map<Identifier, Value>();
+//  final List<dynamic> _statements = [];
+//  final bool isMethod;
+//  Scope _subscope;
+//  
+//  Scope get currentScope => _subscope != null ? _subscope.currentScope : this; 
+//  
+//  Scope.block(List statements) : isMethod = false { _statements.addAll(statements); }
+//  Scope.method(List statements) : isMethod = true { _statements.addAll(statements); }
+//  
+//  String toString() {
+//    var local = "[${_statements.reduce("", (prev,e) => "$e${prev.length > 0 ? "," : ""} $prev")}]";
+//    return "$local${_subscope != null ? ", $_subscope" : ""}";
+//  }
+//  
+//  void newVariable(Identifier name, [Value value = ReferenceValue.invalid]){
+//    if(_subscope != null){
+//        _subscope.newVariable(name, value);
+//    }
+//    else {
+//      assignments[name] = value;
+//      print("declaring: $name ${value is ReferenceValue ? " at [${value}]" : ""} with value $value of type ${value.runtimeType}");
+//    }
+//  }
+//  
+//  bool assign(Identifier name, Value value){
+//    if(_subscope != null && _subscope.assign(name, value))
+//      return true;
+//    
+//    if(!assignments.containsKey(name))
+//      return false;
+//        
+//    assignments[name] = value;
+//    return true;
+//  }
+//  
+//  Value lookUp(Identifier variable){
+//    if(_subscope != null){
+//      var val = _subscope.lookUp(variable);
+//      if(val != null)
+//        return val;
+//    }
+//  
+//    return assignments[variable];
+//  }
+//  
+//  dynamic popStatement(){
+//    if(_subscope != null && _subscope.isDone)
+//        _subscope = null;
+//    
+//    if(_subscope != null)
+//      return _subscope.popStatement();
+//    
+//    return _statements.removeAt(0);
+//  }
+//  
+//  bool get isDone {
+//    if(_subscope != null && !_subscope.isDone)
+//      return false;
+//    return _statements.isEmpty;
+//  }
+//  
+//  void addSubScope(Scope s){
+//    if(_subscope != null)
+//      _subscope.addSubScope(s);
+//    else
+//      _subscope = s;
+//  }
+//}
+//
+//class ClassScope extends Scope {
+//  Scope _constructor;
+//  final List<Scope> _subscopes = new List<Scope>();
+//  final ClassDecl clazz;
+//  final bool isStatic;
+//  
+//  Scope get currentScope => _subscopes.isEmpty ? this : _subscopes.last.currentScope;
+//  
+//  ClassScope(this.clazz, this.isStatic) : super.block([]){
+//    if(isStatic)
+//      _statements.addAll(clazz.staticVariables);
+//  }
+//  
+//  String toString() {
+////    var local = super.toString();
+////    return "$local${_subscopes.isEmpty ? "" : ", ${_subscopes.reduce("", (r, e) => "$r, $e")}"}";
+//    return "$assignments";
+//  }
+//  
+//  addSubScope(Scope s) => _subscopes.add(s);
+//  addSubBlock(Scope s) => _subscopes.last.addSubScope(s);
+//  
+//  void newVariable(Identifier name, [Value value = ReferenceValue.invalid]){
+//    if(_subscopes.isEmpty)
+//      super.newVariable(name, value);
+//    else
+//    _subscopes.last.newVariable(name, value);
+//  }
+//  
+//  bool assign(Identifier name, Value value){
+//    if(!_subscopes.isEmpty && _subscopes.last.assign(name, value))
+//        return true;
+//    
+//    return super.assign(name, value);
+//  }
+//  
+//  Value lookUp(Identifier variable){
+//    if(!_subscopes.isEmpty){
+//      var val = _subscopes.last.lookUp(variable); 
+//      if(val != null)
+//        return val;
+//    }
+//    
+//    return super.lookUp(variable);
+//  }
+//
+//  methodReturn(){
+//    _subscopes.removeLast();    
+//  }
+//  
+//  dynamic popStatement() {
+//    //remove subscopes untill either all are removed or one has statements
+//    while(!_subscopes.isEmpty && _subscopes.last.isDone)
+//      _subscopes.removeLast();
+//    
+//    //if there are still subscopes and the last is not done, pop statement
+//    if(!_subscopes.isEmpty && !_subscopes.last.isDone)
+//      return _subscopes.last.popStatement();
+//    
+//    //else pop own statement.
+//    if(!super.isDone)
+//      return super.popStatement();
+//    
+//    //check if constructor is still running
+//    if(!_constructor.isDone)
+//      return _constructor.popStatement();
+//  }
+//  
+//  bool get isDone {
+//    if(_subscopes.any((Scope sc) => !sc.isDone))
+//      return false;
+//    
+//    if(_constructor != null && !_constructor.isDone)
+//      return false;
+//    
+//    return super.isDone;
+//  }
+//  
+//  void loadMethod(Identifier name, List args, List<TypeNode> argTypes) {
+//    List<MethodDecl> methods = isStatic ? clazz.staticMethods : clazz.instanceMethods;
+//
+//    MethodDecl method = methods.singleMatching((m) => m.name == name.name && _checkParamArgTypeMatch(m.type.parameters, argTypes));
+//    addSubScope(new Scope.method(method.body));
+//    for(int i = 0; i < method.parameters.length; i++){
+//      newVariable(new Identifier(method.parameters[i].name), args[i]);
+//    }
+//  }
+//  
+//  void loadConstructor(List<Value> args, List<TypeNode> argTypes){
+//    if(args.isEmpty){
+//      if(!clazz.constructors.isEmpty)
+//        throw "The empty constructor is undefined!";
+//      return;
+//    }
+//      
+//    MethodDecl method = clazz.constructors.singleMatching((m) => _checkParamArgTypeMatch(m.type.parameters, argTypes));
+//    _constructor = new Scope.method(method.body);
+//    for(int i = 0; i < method.parameters.length; i++){
+//      _constructor.newVariable(new Identifier(method.parameters[i].name), args[i]);
+//    }
+//  }
+//  
+//  bool _checkParamArgTypeMatch(List<TypeNode> parameters, List<TypeNode> args) {
+//    if(parameters.length != args.length)
+//      return false;
+//    
+//    for(int i = 0; i < parameters.length; i++){
+//      TypeNode p = parameters[i];
+//      TypeNode a = args[i];
+//
+//      if(p != a)
+//        return false;
+//    }
+//    return true;
+//  }
+//}
+
+
+// new class structure
+//
+//
+//
+
+abstract class Scope {
+  final Map<Identifier, Value> _variables = new Map<Identifier, Value>();
+  final List<dynamic> _statements;
+  bool  get isDone;
+//  Scope get currentScope;
+  bool  get _isDone => _statements.isEmpty;
   
-  Scope get currentScope => _subscope != null ? _subscope.currentScope : this; 
+  Scope(this._statements);
   
-  Scope.block(List statements) : isMethod = false { _statements.addAll(statements); }
-  Scope.method(List statements) : isMethod = true { _statements.addAll(statements); }
-  
-  String toString() {
-    var local = "[${_statements.reduce("", (prev,e) => "$e${prev.length > 0 ? "," : ""} $prev")}]";
-    return "$local${_subscope != null ? ", $_subscope" : ""}";
-  }
-  
-  void newVariable(Identifier name, [Value value = ReferenceValue.invalid]){
-    if(_subscope != null){
-        _subscope.newVariable(name, value);
-    }
-    else {
-      assignments[name] = value;
-      print("declaring: $name ${value is ReferenceValue ? " at [${value}]" : ""} with value $value of type ${value.runtimeType}");
-    }
-  }
-  
-  bool assign(Identifier name, Value value){
-    if(_subscope != null && _subscope.assign(name, value))
-      return true;
+  void _newVariable(Identifier name, [Value value=ReferenceValue.invalid]){
+    if(_variables.containsKey(name))
+      throw "Cannot redeclare variable $name";
     
-    if(!assignments.containsKey(name))
+    _variables[name] = value;
+  }
+  
+  bool _assign(Identifier name, Value value){
+    if(!_variables.containsKey(name))
       return false;
-        
-    assignments[name] = value;
-    return true;
+    
+    _variables[name] = value;
   }
   
-  Value lookUp(Identifier variable){
-    if(_subscope != null){
-      var val = _subscope.lookUp(variable);
-      if(val != null)
-        return val;
-    }
-  
-    return assignments[variable];
+  Value _lookup(Identifier name){
+    return _variables[name];
   }
   
-  dynamic popStatement(){
-    if(_subscope != null && _subscope.isDone)
-        _subscope = null;
-    
-    if(_subscope != null)
-      return _subscope.popStatement();
-    
+  dynamic _popStatement(){
     return _statements.removeAt(0);
   }
   
-  bool get isDone {
-    if(_subscope != null && !_subscope.isDone)
-      return false;
-    return _statements.isEmpty;
+  void _pushStatement(dynamic statement){
+    _statements.insertRange(0, 1, statement);
   }
-  
-  void addSubScope(Scope s){
-    if(_subscope != null)
-      _subscope.addSubScope(s);
-    else
-      _subscope = s;
-  }
+
+  void addBlock(BlockScope block);
+  void newVariable(Identifier name, [Value value=ReferenceValue.invalid]);
+  bool assign(Identifier name, Value value);
+  Value lookup(Identifier name);
+  dynamic popStatement();
+  void pushStatement(dynamic statement);
 }
 
-class ClassScope extends Scope {
-  Scope _constructor;
-  final List<Scope> _subscopes = new List<Scope>();
-  final ClassDecl clazz;
-  final bool isStatic;
+abstract class ClassScope extends Scope {
+  List<BlockScope> _methodStack = new List<BlockScope>();
   
-  Scope get currentScope => _subscopes.isEmpty ? this : _subscopes.last.currentScope;
-  
-  ClassScope(this.clazz, this.isStatic) : super.block([]){
-    if(isStatic)
-      _statements.addAll(clazz.staticVariables);
+  List<MethodDecl> get methodDeclarations;
+  Package get package;
+  bool  get isDone {
+    if(_methodStack.any((sc) => !sc.isDone))
+        return false;
+    return super._isDone;
   }
   
-  String toString() {
-//    var local = super.toString();
-//    return "$local${_subscopes.isEmpty ? "" : ", ${_subscopes.reduce("", (r, e) => "$r, $e")}"}";
-    return "$assignments";
-  }
+  ClassScope(List<dynamic> statements) : super(statements);
   
-  addSubScope(Scope s) => _subscopes.add(s);
-  addSubBlock(Scope s) => _subscopes.last.addSubScope(s);
-  
-  void newVariable(Identifier name, [Value value = ReferenceValue.invalid]){
-    if(_subscopes.isEmpty)
-      super.newVariable(name, value);
-    else
-    _subscopes.last.newVariable(name, value);
-  }
-  
-  bool assign(Identifier name, Value value){
-    if(!_subscopes.isEmpty && _subscopes.last.assign(name, value))
-        return true;
-    
-    return super.assign(name, value);
-  }
-  
-  Value lookUp(Identifier variable){
-    if(!_subscopes.isEmpty){
-      var val = _subscopes.last.lookUp(variable); 
-      if(val != null)
-        return val;
-    }
-    
-    return super.lookUp(variable);
-  }
-
-  methodReturn(){
-    _subscopes.removeLast();    
-  }
-  
-  dynamic popStatement() {
-    //remove subscopes untill either all are removed or one has statements
-    while(!_subscopes.isEmpty && _subscopes.last.isDone)
-      _subscopes.removeLast();
-    
-    //if there are still subscopes and the last is not done, pop statement
-    if(!_subscopes.isEmpty && !_subscopes.last.isDone)
-      return _subscopes.last.popStatement();
-    
-    //else pop own statement.
-    if(!super.isDone)
-      return super.popStatement();
-    
-    //check if constructor is still running
-    if(!_constructor.isDone)
-      return _constructor.popStatement();
-  }
-  
-  bool get isDone {
-    if(_subscopes.any((Scope sc) => !sc.isDone))
-      return false;
-    
-    if(_constructor != null && !_constructor.isDone)
-      return false;
-    
-    return super.isDone;
-  }
-  
-  void loadMethod(Identifier name, List args, List<TypeNode> argTypes) {
-    List<MethodDecl> methods = isStatic ? clazz.staticMethods : clazz.instanceMethods;
+  void loadMethod(Identifier name, List<Value> args, List<TypeNode> argTypes){
+    List<MethodDecl> methods = methodDeclarations;
 
     MethodDecl method = methods.singleMatching((m) => m.name == name.name && _checkParamArgTypeMatch(m.type.parameters, argTypes));
-    addSubScope(new Scope.method(method.body));
+    _methodStack.addLast(new BlockScope(method.body));
     for(int i = 0; i < method.parameters.length; i++){
       newVariable(new Identifier(method.parameters[i].name), args[i]);
     }
   }
   
-  void loadConstructor(List<Value> args, List<TypeNode> argTypes){
-    if(args.isEmpty){
-      if(!clazz.constructors.isEmpty)
-        throw "The empty constructor is undefined!";
-      return;
-    }
-      
-    MethodDecl method = clazz.constructors.singleMatching((m) => _checkParamArgTypeMatch(m.type.parameters, argTypes));
-    _constructor = new Scope.method(method.body);
-    for(int i = 0; i < method.parameters.length; i++){
-      _constructor.newVariable(new Identifier(method.parameters[i].name), args[i]);
-    }
+  void addBlock(BlockScope block){
+    if(_methodStack.isEmpty)
+      throw "Can't add child block scope to a class scope!";
+    
+    _methodStack.last.addBlock(block);
   }
   
-  bool _checkParamArgTypeMatch(List<TypeNode> parameters, List<TypeNode> args) {
+  void newVariable(Identifier name, [Value value=ReferenceValue.invalid]){
+    if(!_methodStack.isEmpty)
+      _methodStack.last.newVariable(name, value);
+    else
+      super._newVariable(name, value);
+  }
+  
+  bool assign(Identifier name, Value value){
+    if(!_methodStack.isEmpty)
+      return _methodStack.last.assign(name, value);
+    else
+      return super._assign(name, value);
+  }
+  
+  Value lookup(Identifier name){
+    if(!_methodStack.isEmpty){
+      Value val = _methodStack.last.lookup(name);
+      if(val != null)
+        return val;
+    }
+    
+    return super._lookup(name);
+  }
+  
+  dynamic popStatement(){
+    //pop complete method scopes
+    while(!_methodStack.isEmpty && _methodStack.last.isDone)
+      _methodStack.removeLast();
+    
+    if(!_methodStack.isEmpty)
+      return _methodStack.last.popStatement();
+
+    return super._popStatement();
+  }
+  
+  void pushStatement(dynamic statement){
+    if(!_methodStack.isEmpty)
+      _methodStack.last.pushStatement(statement);
+    else
+      super._pushStatement(statement);
+  }
+  
+  static bool _checkParamArgTypeMatch(List<TypeNode> parameters, List<TypeNode> args) {
     if(parameters.length != args.length)
       return false;
     
     for(int i = 0; i < parameters.length; i++){
-      TypeNode p = parameters[i];
-      TypeNode a = args[i];
-
-      if(p != a)
+      if(parameters[i] != args[i])
         return false;
     }
     return true;
   }
+}
+
+class BlockScope extends Scope {
+  Scope _subBlock;
+//  Scope get currentScope => _subBlock == null ? this : _subBlock.currentScope;
+  bool get isDone => _subBlock == null ? _statements.isEmpty : _subBlock.isDone && _statements.isEmpty;
+  
+  BlockScope(List<dynamic> statements) : super(statements);
+  
+  void addBlock(BlockScope block){
+    if(_subBlock != null)
+      _subBlock.addBlock(block);
+    else
+      _subBlock = block;
+  }
+  
+  void newVariable(Identifier name, [Value value=ReferenceValue.invalid]){
+    if(_subBlock != null)
+      _subBlock.newVariable(name, value);
+    else 
+      super._newVariable(name, value);
+  }
+  
+  bool assign(Identifier name, Value value){
+    if(_subBlock != null && _subBlock.assign(name, value))
+      return true;
+    
+    return super._assign(name, value);
+  }
+  
+  Value lookup(Identifier name){
+    if(_subBlock != null){
+      Value val = _subBlock.lookup(name);
+      if(val != null)
+        return val;
+    }
+    
+    return super._lookup(name);
+  }
+  
+  dynamic popStatement(){
+    //pop block if empty
+    if(_subBlock != null && _subBlock.isDone)
+      _subBlock = null;
+    
+    if(_subBlock != null && !_subBlock.isDone)
+      return _subBlock.popStatement();
+    
+    return super._popStatement();
+  }
+  
+  void pushStatement(dynamic statement){
+    if(_subBlock != null)
+      _subBlock.pushStatement(statement);
+    else
+      super._pushStatement(statement);    
+  }
+}
+
+class StaticClass extends ClassScope {
+  final ClassDecl _declaration;
+  final Map<Identifier, ReferenceValue> _localClasses = new Map<Identifier, ReferenceValue>();
+  final Package package;
+  List<MethodDecl> get methodDeclarations => _declaration.staticMethods;
+  
+  StaticClass(Package this.package, ClassDecl this._declaration, List<dynamic> statements) : super(statements);
+  
+  Value lookup(Identifier name){
+    //first check current block (and parents) and locally declared
+    Value val= super.lookup(name);
+    if(val != null)
+      return val;
+    
+    //then check imports
+    return _localClasses[name];
+  }
+}
+
+class ClassInstance extends ClassScope {
+  final StaticClass _static;
+  Package get package => _static.package;
+  List<MethodDecl> get methodDeclarations => new List<MethodDecl>()
+      ..addAll(_static._declaration.staticMethods)..addAll(_static._declaration.instanceMethods);
+  
+  ClassInstance(StaticClass this._static, List<dynamic> statements) : super(statements);
+  
+  Value lookup(Identifier name){
+    //first check current block (and parents) and locally declared
+    Value val= super.lookup(name);
+    if(val != null)
+      return val;
+    
+    //then check statically declared, and imports
+    return _static.lookup(name);
+  }
+}
+
+class Package {
+  final Map<Identifier, ReferenceValue> _packages = new Map<Identifier, ReferenceValue>();
+  final Map<Identifier, ReferenceValue> _memberClasses = new Map<Identifier, ReferenceValue>();
+  
+  ReferenceValue getPackage(Identifier name) => _packages[name];
+  ReferenceValue getClass(Identifier name) => _memberClasses[name];
 }

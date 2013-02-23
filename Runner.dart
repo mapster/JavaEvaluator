@@ -72,7 +72,7 @@ class Runner {
     else if(statement is BinaryOp)
       return _evalBinaryOp(statement);
     else if(statement is Identifier)
-      return environment.lookUpValue(statement);
+      return environment.lookupValue(statement);
     else if(statement is String)
       return statement;
     else if(statement is bool)
@@ -122,7 +122,7 @@ class Runner {
   
   _evalNewObject(NewObject newObject){
     return new EvalTree(newObject, this, (List args){
-      ReferenceValue ref = environment.newObject(environment.lookUpClass(newObject.name), args);
+      ReferenceValue ref = environment.newObject(environment.lookupClass(newObject.name), args);
       environment.loadEnv(ref);
       return ref;
     }, newObject.arguments).execute();
@@ -197,10 +197,7 @@ class Runner {
   
   _evalMemberSelect(MemberSelect select){
     return new EvalTree(select, this, (List args){
-      environment.loadEnv(args[0]);
-      ReferenceValue ref = environment.lookUpValue(select.member_id);
-      environment.unloadEnv();
-      return ref;
+      return environment.lookupIn(select.member_id, args[0]);
     }, [select.owner]).execute();
   }
 
