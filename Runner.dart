@@ -31,6 +31,37 @@ class Runner {
     ReferenceValue instanceAddr = environment.newClassInstance(clazz, true);
     environment.loadEnv(environment.values[instanceAddr]);
   }
+  
+  void loadUnit(CompilationUnit unit){
+    ReferenceValue pkg = getOrCreatePackage(unit.package);
+    List<ReferenceValue> imports = unit.imports.mappedBy((sel){
+      //get enclosing pkg
+      ReferenceValue enclosing = getOrCreatePackage(sel.owner);
+      //lookup in enclosing
+      ReferenceValue import = environment.values[enclosing].lookupContainer(sel.member_id); 
+      if(import == null)
+        import = environment._newValue(null); //if not found, add a memory location for it
+      return import;
+    }).toList();
+    
+    unit.typeDeclarations.forEach((ClassDecl decl){
+      new StaticClass(pkg, decl, )
+    });
+  }
+  
+  ReferenceValue getOrCreatePackage(select){
+    if(select is Identifier){
+      ReferenceValue ref = environment._newValue(new Package(select));
+      environment.defaultPackage.addMember(select, ref);
+      return ref;
+    }
+    else if(select is MemberSelect){
+      ReferenceValue ref = environment._newValue(new Package(select.member_id));
+      environment.values[getOrCreatePackage(select.owner)].addMember(select.member_id, ref);
+      return ref;
+    }
+    else throw "Can't get or create package using object of type ${select.runtimeType}";
+  }
     
   void step(){
     var toEval = environment.popStatement();

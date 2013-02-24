@@ -4,7 +4,7 @@ class Environment {
   int _counter = 0;
   final Map<ReferenceValue, dynamic> values = new Map<ReferenceValue, dynamic>();
   final List<ClassScope> instanceStack = new List<ClassScope>();
-  final Package defaultPackage = new Package();
+  final Package defaultPackage = new Package(const Identifier(""));
   
   void addBlock(List statements) => instanceStack.last.addBlock(new BlockScope(statements));
   
@@ -48,15 +48,26 @@ class Environment {
   }
   
   dynamic lookupContainer(Identifier name, {ReferenceValue inContainer}){
-    var lookupIn = instanceStack.last; 
+    var found = null;
     if(?inContainer)
-      lookupIn = values[inContainer];
+      found = values[inContainer].lookupContainer(name);
+    else if(!instanceStack.isEmpty)
+      found = instanceStack.last.lookupContainer(name);
     
-    var found = lookupIn.lookupContainer(name);
     if(found != null)
       return found;
     
     return defaultPackage.lookupContainer(name);
+  }
+  
+  ReferenceValue createPackage(Identifier name, {ReferenceValue inContainer}){
+    Package addTo = defaultPackage;
+    if(?inContainer)
+      addTo = values[inContainer];
+    
+    ReferenceValue ref = _newValue(new Package(name));
+    addTo.addMember(name, ref);
+    return ref;
   }
   
   /**
@@ -115,11 +126,11 @@ class Environment {
 //    return val;
 //  }
 //  
-//  ReferenceValue _newValue(dynamic value){
-//    ReferenceValue addr = new ReferenceValue(++_counter);
-//    values[addr] = value;
-//    return addr;
-//  }
+  ReferenceValue _newValue(dynamic value){
+    ReferenceValue addr = new ReferenceValue(++_counter);
+    values[addr] = value;
+    return addr;
+  }
 //  
 //  void loadMethod(select, List args) {
 //    if(select is MemberSelect){
@@ -418,7 +429,7 @@ abstract class ClassScope extends Scope {
   
   List<MethodDecl> get methodDeclarations;
   Map<Identifier, dynamic> get _namespaceClasses;
-  Package get package;
+  ReferenceValue get package;
   bool  get isDone {
     if(_methodStack.any((sc) => !sc.isDone))
         return false;
@@ -562,16 +573,16 @@ class BlockScope extends Scope {
 class StaticClass extends ClassScope {
   final ClassDecl _declaration;
   final Map<Identifier, ReferenceValue> _localClasses = new Map<Identifier, ReferenceValue>();
-  final Package package;
+  final ReferenceValue package;
   List<MethodDecl> get methodDeclarations => _declaration.staticMethods;
   Map<Identifier, dynamic> _namespaceClasses = new Map<Identifier, dynamic>();
   
-  StaticClass(Package this.package, ClassDecl this._declaration, List<dynamic> statements) : super(statements);
+  StaticClass(ReferenceValue this.package, ClassDecl this._declaration, List<dynamic> statements) : super(statements);
 }
 
 class ClassInstance extends ClassScope {
   final StaticClass _static;
-  Package get package => _static.package;
+  ReferenceValue get package => _static.package;
   Map<Identifier, dynamic> get _namespaceClasses => _static._namespaceClasses; 
   List<MethodDecl> get methodDeclarations => new List<MethodDecl>()
       ..addAll(_static._declaration.staticMethods)..addAll(_static._declaration.instanceMethods);
@@ -581,7 +592,11 @@ class ClassInstance extends ClassScope {
 }
 
 class Package {
+  final Identifier name;
   final Map<Identifier, ReferenceValue> _members = new Map<Identifier, ReferenceValue>();
   
+  Package(this.name);
+  
+  void addMember(Identifier name, ReferenceValue pkgRef) { _members[name] = pkgRef; }
   ReferenceValue lookupContainer(Identifier name) => _members[name];
 }

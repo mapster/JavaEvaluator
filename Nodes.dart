@@ -104,7 +104,7 @@ class ClassDecl extends ASTNode {
 }
 
 class CompilationUnit extends ASTNode {
-  final Identifier package;
+  final package;
   final List<MemberSelect> imports;
   final List<ClassDecl> typeDeclarations;
   
