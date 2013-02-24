@@ -33,7 +33,11 @@ class Runner {
   }
   
   void loadUnit(CompilationUnit unit){
-    ReferenceValue pkg = getOrCreatePackage(unit.package);
+    ReferenceValue pkg = environment.defaultPackage; 
+    if(unit.package == null)
+      pkg = getOrCreatePackage(unit.package);
+    
+    //evaluate imports
     List<ReferenceValue> imports = unit.imports.mappedBy((sel){
       //get enclosing pkg
       ReferenceValue enclosing = getOrCreatePackage(sel.owner);
@@ -44,20 +48,41 @@ class Runner {
       return import;
     }).toList();
     
-    unit.typeDeclarations.forEach((ClassDecl decl){
-      new StaticClass(pkg, decl, )
+    //Create all the static scopes
+    List<ReferenceValue> staticScopes = unit.typeDeclarations.mappedBy((ClassDecl decl){
+      StaticClass clazz = new StaticClass(pkg, decl, decl.staticVariables);
+      ReferenceValue ref = environment.lookupContainer(new Identifier(decl.name), inContainer:pkg);
+      if(ref != null){
+        //memory has already been allocated for class (due to import in another class. Store it at that location
+        environment.values[ref] = clazz;
+      }
+      else {
+        ref = environment._newValue(clazz);
+      }
+      environment.values[pkg].addMember(decl.name, ref);
+      return ref;
     });
+    
+    //add 
   }
   
   ReferenceValue getOrCreatePackage(select){
     if(select is Identifier){
-      ReferenceValue ref = environment._newValue(new Package(select));
-      environment.defaultPackage.addMember(select, ref);
+      //Base case, get existing or create new root package
+      ReferenceValue ref = environment.packages[select];
+      if(ref == null){
+        ref = environment._newValue(new Package(select));
+        environment.packages[select] = ref;
+      }
       return ref;
     }
     else if(select is MemberSelect){
-      ReferenceValue ref = environment._newValue(new Package(select.member_id));
-      environment.values[getOrCreatePackage(select.owner)].addMember(select.member_id, ref);
+      ReferenceValue owner = getOrCreatePackage(select.owner);
+      ReferenceValue ref = environment.values[owner].lookupContainer(select.member_id);
+      if(ref == null){
+        ref = environment._newValue(new Package(select.member_id));
+        environment.values[owner].addMember(select.member_id, ref);
+      }
       return ref;
     }
     else throw "Can't get or create package using object of type ${select.runtimeType}";

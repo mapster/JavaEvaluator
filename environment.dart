@@ -4,7 +4,8 @@ class Environment {
   int _counter = 0;
   final Map<ReferenceValue, dynamic> values = new Map<ReferenceValue, dynamic>();
   final List<ClassScope> instanceStack = new List<ClassScope>();
-  final Package defaultPackage = new Package(const Identifier(""));
+  final ReferenceValue defaultPackage = _newValue(new Package(const Identifier("")));
+  final Map<Identifier, ReferenceValue> packages = new Map<Identifier, ReferenceValue>();
   
   void addBlock(List statements) => instanceStack.last.addBlock(new BlockScope(statements));
   
@@ -49,26 +50,33 @@ class Environment {
   
   dynamic lookupContainer(Identifier name, {ReferenceValue inContainer}){
     var found = null;
-    if(?inContainer)
+    if(?inContainer){
+      //lookup in specified container, must exist!
       found = values[inContainer].lookupContainer(name);
-    else if(!instanceStack.isEmpty)
+      if(found == null)
+        throw "Couldn't find class/package $name in specified package";
+    }
+    else if(!instanceStack.isEmpty){
+      //lookup in current namespace
       found = instanceStack.last.lookupContainer(name);
+    }
     
     if(found != null)
       return found;
     
-    return defaultPackage.lookupContainer(name);
+    //if not found, look for root package
+    return packages[name];
   }
   
-  ReferenceValue createPackage(Identifier name, {ReferenceValue inContainer}){
-    Package addTo = defaultPackage;
-    if(?inContainer)
-      addTo = values[inContainer];
-    
-    ReferenceValue ref = _newValue(new Package(name));
-    addTo.addMember(name, ref);
-    return ref;
-  }
+//  ReferenceValue createPackage(Identifier name, {ReferenceValue inContainer}){
+//    Package addTo = defaultPackage;
+//    if(?inContainer)
+//      addTo = values[inContainer];
+//    
+//    ReferenceValue ref = _newValue(new Package(name));
+//    addTo.addMember(name, ref);
+//    return ref;
+//  }
   
   /**
    * Initializes a class instance, i.e. stores all fields with an initial value in memory and returns the class environment.
