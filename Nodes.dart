@@ -103,6 +103,14 @@ class ClassDecl extends ASTNode {
   }
 }
 
+class CompilationUnit extends ASTNode {
+  final Identifier package;
+  final List<MemberSelect> imports;
+  final List<ClassDecl> typeDeclarations;
+  
+  CompilationUnit.fromJson(Map json, this.package, this.imports, this.typeDeclarations) : super.fromJson(json);
+}
+
 class Identifier extends ASTNode {
   final String name;
   

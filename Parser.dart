@@ -11,12 +11,13 @@ part 'environment.dart';
 part 'types.dart';
 
 class Program {
-  List root;
-  Map<String, ClassDecl> classDeclarations = {};
+  final List<CompilationUnit> compilationUnits;
   MemberSelect mainSelector;
   
-  Program(List<Map<String, dynamic>> ast) {
-    root = ast.mappedBy(parseObject).toList();
+  Program(List<Map<String, dynamic>> ast) : compilationUnits = new List<CompilationUnit>(){
+    ast.forEach((Map unit){
+      compilationUnits.add(parseObject(unit));
+    });
   }
   
   parseObject(Map json){
@@ -28,6 +29,8 @@ class Program {
         return new ArrayAccess.fromJson(json, parseObject(json['index']), parseObject(json['expr']));
       case 'class':
         return parseClass(json);
+      case 'compile_unit':
+        return parseCompilationUnit(json);
       case 'method':
         return parseMethod(json);
       case 'variable':
@@ -78,13 +81,29 @@ class Program {
     return method;
   }
   
+  CompilationUnit parseCompilationUnit(Map json){
+    Identifier package = const Identifier("");
+    if(json.containsKey('package'))
+      package = parseObject(json['package']);
+    
+    List imports = [];
+    if(json.containsKey('imports'))
+      imports = json['imports'].mappedBy(parseObject).toList();
+    
+    List typeDeclarations = [];
+    if(json.containsKey('type_declarations'))
+      typeDeclarations = json['type_declarations'].mappedBy(parseObject).toList();
+      
+      
+    return new CompilationUnit.fromJson(json, package, imports, typeDeclarations);
+  }
+  
   ClassDecl parseClass(Map json){
     ClassDecl clazz = new ClassDecl.fromJson(json, json['members'].mappedBy(parseObject).toList());
     //if class has a main method, create a selector for it
     if(clazz.staticMethods.any((MethodDecl m) => m.name == "main" && m.type == MethodType.main))
       this.mainSelector = new MemberSelect.mainMethod(new Identifier(clazz.name));
     
-    this.classDeclarations[clazz.name] = clazz;
     return clazz;  
   }
 
