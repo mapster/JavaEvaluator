@@ -63,7 +63,7 @@ postSourceToJsonService(String data){
         prog = (new Program(parse(req.responseText)));
         print("intializing runner");
         runner = new Runner(prog);
-        java.children[0] = Printer.toHtml(prog.root.first);
+        java.children[0] = Printer.toHtml(prog.compilationUnits.first);
         stepBtn.disabled = false;
         environment.children.clear();
         printEnv();
@@ -77,19 +77,19 @@ postSourceToJsonService(String data){
 }
 
 void printEnv(){
-  DivElement root = new DivElement();
-  HeadingElement hValues = new HeadingElement.h3();
-  hValues.text = "Values";
-  DivElement values = new DivElement();
-  values.children = runner.environment.values.keys.mappedBy((key){
-    DivElement val = new DivElement();
-    var v = runner.environment.values[key];
-    val.text = "$key: ${runner.environment.typeOf(v)} => $v";
-    return val;
-  }).toList();
-  root.children = [hValues, values];
-
-  environment.children = [root, Printer.scopeToHtml(runner.environment.currentScope)];
+//  DivElement root = new DivElement();
+//  HeadingElement hValues = new HeadingElement.h3();
+//  hValues.text = "Values";
+//  DivElement values = new DivElement();
+//  values.children = runner.environment.values.keys.mappedBy((key){
+//    DivElement val = new DivElement();
+//    var v = runner.environment.values[key];
+//    val.text = "$key: ${runner.environment.typeOf(v)} => $v";
+//    return val;
+//  }).toList();
+//  root.children = [hValues, values];
+//
+//  environment.children = [root, Printer.scopeToHtml(runner.environment.currentScope)];
 }
 
 //void drawArrow(Pos p1, Pos p2, num width){

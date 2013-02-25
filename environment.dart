@@ -1,11 +1,16 @@
 part of JavaEvaluator;
 
 class Environment {
-  int _counter = 0;
+  final Runner _runner;
+  int _counter = 1;
   final Map<ReferenceValue, dynamic> values = new Map<ReferenceValue, dynamic>();
   final List<ClassScope> instanceStack = new List<ClassScope>();
-  final ReferenceValue defaultPackage = _newValue(new Package(const Identifier("")));
+  final ReferenceValue defaultPackage = new ReferenceValue(0);
   final Map<Identifier, ReferenceValue> packages = new Map<Identifier, ReferenceValue>();
+  
+  Environment(this._runner){
+    values[defaultPackage] = new Package(const Identifier(""));
+  }
   
   void addBlock(List statements) => instanceStack.last.addBlock(new BlockScope(statements));
   
@@ -18,8 +23,7 @@ class Environment {
   bool get isDone {
     if(instanceStack.isEmpty)
       return true;
-    if(instanceStack.any((ClassScope sc) => !sc.isDone))
-      return false;
+    return instanceStack.every((ClassScope sc) => sc.isDone);
   }
   
   void newVariable(Identifier name, [Value value = ReferenceValue.invalid]){
@@ -41,6 +45,7 @@ class Environment {
   
   Value lookupVariable(Identifier name){
     //Check in current class instance for the variable (both static and instance)
+    print("Lookin up: $name");
     return  instanceStack.last.lookupVariable(name);
   }
   
@@ -48,13 +53,11 @@ class Environment {
     return values[envRef].lookup(name);
   }
   
-  dynamic lookupContainer(Identifier name, {ReferenceValue inContainer}){
+  ReferenceValue lookupContainer(Identifier name, {ReferenceValue inContainer}){
     var found = null;
     if(?inContainer){
       //lookup in specified container, must exist!
       found = values[inContainer].lookupContainer(name);
-      if(found == null)
-        throw "Couldn't find class/package $name in specified package";
     }
     else if(!instanceStack.isEmpty){
       //lookup in current namespace
@@ -64,9 +67,24 @@ class Environment {
     if(found != null)
       return found;
     
-    //if not found, look for root package
+    //if not found, check if default package
+    if(name == Identifier.CONSTRUCTOR)
+      return defaultPackage;
+    
+    //check if package
     return packages[name];
   }
+  
+  ReferenceValue memberSelectContainer(MemberSelect select){
+    ReferenceValue inCont;
+    if(select.owner is MemberSelect)
+      inCont = memberSelectContainer(select.owner);
+    else
+      inCont = lookupContainer(select.owner);
+    
+    return lookupContainer(select.member_id, inContainer:inCont);
+  }
+  
   
 //  ReferenceValue createPackage(Identifier name, {ReferenceValue inContainer}){
 //    Package addTo = defaultPackage;
@@ -90,12 +108,28 @@ class Environment {
 //    return _newValue(scope);
 //  }
 //  
-//  ReferenceValue newObject(ClassDecl clazz, List<Value> args){
-//    ClassScope scope = new ClassScope(clazz, false);
-//    scope._statements.addAll(clazz.instanceVariables);
-//    scope.loadConstructor(args, args.map(typeOf).toList());
-//    return _newValue(scope);
-//  }
+  ReferenceValue newObject(ReferenceValue staticRef, List<Value> constructorArgs){
+    StaticClass clazz = values[staticRef];
+    
+    List<EvalTree> initializers = new List<EvalTree>();
+    ClassInstance inst = new ClassInstance(clazz, initializers);
+    //declare all variables and create assignments of the initializers
+    clazz._declaration.instanceVariables.forEach((Variable v){
+      Identifier id = new Identifier(v.name);
+      inst.newVariable(id);
+      initializers.add(new EvalTree(v, _runner, (List args) => assign(id, args.first), [v.initializer]));
+    });
+    
+    //add method call to constructor
+    initializers.add(new EvalTree(null, _runner, (List args){
+      loadMethod(Identifier.CONSTRUCTOR, args);
+      var toReturn = new EvalTree(null, _runner);
+      _runner.returnValues.addLast(toReturn);
+      return toReturn;
+    }, []));
+ 
+    return _newValue(inst);
+  }
 //  
 //  ClassDecl lookUpClass(name){
 //    if(name is Identifier){
@@ -104,9 +138,9 @@ class Environment {
 //    else throw "Don't know how to look up class using ${name.runtimeType}."; 
 //  }
 //  
-//  ReferenceValue newArray(int size, Value value, TypeNode type) {
-//    return _newValue(new Array(size, value, type));
-//  }
+  ReferenceValue newArray(int size, Value value, TypeNode type) {
+    return _newValue(new Array(size, value, type));
+  }
 //  
 //  Value lookUpValue(variable){
 //    bool loadedEnv = false;
@@ -140,32 +174,26 @@ class Environment {
     return addr;
   }
 //  
-//  void loadMethod(select, List args) {
-//    if(select is MemberSelect){
-//      loadEnv(lookUpValue(select.owner));
-//      select = select.member_id;
-//    }
-//    currentContext.loadMethod(select, args, args.map(typeOf).toList());
-//  }
-//  
-//  void methodReturn(){
-//    currentContext.methodReturn();
-//  }
-//  
-//  bool loadEnv(dynamic env){
-//    if(env is ReferenceValue)
-//      env = values[env];
-//    
-//    if(env is! ClassScope)
-//      throw "Can only load class scope as primary environment!";
-//    
-//    contextStack.addLast(env);
-//    return true;
-//  }
-//  
-//  void unloadEnv(){
-//    contextStack.removeLast();
-//  }
+  void loadMethod(Identifier name, List args, {ReferenceValue inContainer}) {
+    if(?inContainer)
+      loadEnv(inContainer);
+    
+    instanceStack.last.loadMethod(name, args, args.map(typeOf).toList());
+  }
+  
+  void methodReturn(){
+    instanceStack.last.methodReturn();
+  }
+  
+  bool loadEnv(ReferenceValue env){
+    print("loading environment $env => ${values[env]} ");
+    instanceStack.addLast(values[env]);
+    return true;
+  }
+  
+  void unloadEnv(){
+    instanceStack.removeLast();
+  }
   
   TypeNode typeOf(dynamic val){
     if(val is ReferenceValue)
@@ -410,6 +438,7 @@ abstract class Scope {
       return false;
     
     _variables[name] = value;
+    return true;
   }
   
   Value _lookupVariable(Identifier name){
@@ -436,7 +465,7 @@ abstract class ClassScope extends Scope {
   List<BlockScope> _methodStack = new List<BlockScope>();
   
   List<MethodDecl> get methodDeclarations;
-  Map<Identifier, dynamic> get _namespaceClasses;
+  Map<Identifier, ReferenceValue> get _namespaceClasses;
   ReferenceValue get package;
   bool  get isDone {
     if(_methodStack.any((sc) => !sc.isDone))
@@ -454,6 +483,10 @@ abstract class ClassScope extends Scope {
     for(int i = 0; i < method.parameters.length; i++){
       newVariable(new Identifier(method.parameters[i].name), args[i]);
     }
+  }
+  
+  void methodReturn(){
+    _methodStack.removeLast();
   }
   
   void addBlock(BlockScope block){
@@ -487,7 +520,7 @@ abstract class ClassScope extends Scope {
     return super._lookupVariable(name);
   }
   
-  dynamic lookupContainer(Identifier name){
+  ReferenceValue lookupContainer(Identifier name){
     return _namespaceClasses[name];
   }
   
@@ -583,9 +616,12 @@ class StaticClass extends ClassScope {
   final Map<Identifier, ReferenceValue> _localClasses = new Map<Identifier, ReferenceValue>();
   final ReferenceValue package;
   List<MethodDecl> get methodDeclarations => _declaration.staticMethods;
-  Map<Identifier, dynamic> _namespaceClasses = new Map<Identifier, dynamic>();
+  Map<Identifier, ReferenceValue> _namespaceClasses = new Map<Identifier, ReferenceValue>();
+  Identifier get name => new Identifier(_declaration.name);
   
   StaticClass(ReferenceValue this.package, ClassDecl this._declaration, List<dynamic> statements) : super(statements);
+  
+  String toString() => name.toString();
 }
 
 class ClassInstance extends ClassScope {
@@ -605,6 +641,10 @@ class Package {
   
   Package(this.name);
   
-  void addMember(Identifier name, ReferenceValue pkgRef) { _members[name] = pkgRef; }
+  void addMember(Identifier name, ReferenceValue pkgRef) {
+    print("$name: adding member -> $name");
+    _members[name] = pkgRef; 
+  }
+  
   ReferenceValue lookupContainer(Identifier name) => _members[name];
 }

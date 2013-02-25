@@ -3,7 +3,7 @@ part of JavaEvaluator;
 typedef dynamic EvalMethod(List args);
 
 class Runner {
-  Environment environment = new Environment();
+  Environment environment;
   Program program;
   List<dynamic> returnValues = [];
   ASTNode _current;
@@ -18,39 +18,58 @@ class Runner {
           }
   
   Runner(this.program) {
-    program.classDeclarations.values.forEach(loadClass);
+    environment = new Environment(this);
+    program.compilationUnits.forEach((unit) => loadUnit(unit));
     //perform static loading
     while(!isDone())
       step();
     
-    if(program.mainSelector != null)
-      environment.loadMethod(program.mainSelector, [environment.newArray(0, null, const TypeNode.fixed(TypeNode.STRING))]);
+    print((environment.values[environment.defaultPackage] as Package)._members);
+    if(program.mainSelector != null){
+      print("loading main method: ${program.mainSelector}");
+
+      ReferenceValue inContainer;
+      if(program.mainSelector.owner is MemberSelect)
+        inContainer = environment.memberSelectContainer(program.mainSelector.owner);
+      else inContainer = environment.lookupContainer(program.mainSelector.owner);
+      
+      environment.loadMethod(program.mainSelector.member_id, 
+          [environment.newArray(0, null, const TypeNode.fixed(TypeNode.STRING))], 
+          inContainer:inContainer);
+    }
   }
   
-  void loadClass(ClassDecl clazz) {
-    ReferenceValue instanceAddr = environment.newClassInstance(clazz, true);
-    environment.loadEnv(environment.values[instanceAddr]);
-  }
-  
-  void loadUnit(CompilationUnit unit){
-    ReferenceValue pkg = environment.defaultPackage; 
-    if(unit.package == null)
-      pkg = getOrCreatePackage(unit.package);
+  List<ReferenceValue> loadUnit(CompilationUnit unit){
+    print("loading unit...");
+    ReferenceValue pkg = getOrCreatePackage(unit.package);
     
     //evaluate imports
     List<ReferenceValue> imports = unit.imports.mappedBy((sel){
       //get enclosing pkg
       ReferenceValue enclosing = getOrCreatePackage(sel.owner);
-      //lookup in enclosing
-      ReferenceValue import = environment.values[enclosing].lookupContainer(sel.member_id); 
+      ReferenceValue import = enclosing; //default to entire package (star imports)
+      if(sel.member_id.name != "*"){
+        //lookup in enclosing, if not star import
+        environment.values[enclosing].lookupContainer(sel.member_id);
+      }
       if(import == null)
         import = environment._newValue(null); //if not found, add a memory location for it
       return import;
     }).toList();
     
-    //Create all the static scopes
+    //Create all the static scopes, add imports, and add them to associated packages
     List<ReferenceValue> staticScopes = unit.typeDeclarations.mappedBy((ClassDecl decl){
-      StaticClass clazz = new StaticClass(pkg, decl, decl.staticVariables);
+      print("loading class: ${decl.name}");
+      List<EvalTree> initializers = new List<EvalTree>();
+      StaticClass clazz = new StaticClass(pkg, decl, initializers);
+      //declare static variables, and transform initializers into assignments
+      decl.staticVariables.forEach((Variable v){
+        Identifier id = new Identifier(v.name);
+        clazz.newVariable(id);
+        initializers.add(new EvalTree(v, this, (List args) => environment.assign(id, args.first),[v.initializer]));
+      });
+      
+      //check if previously declared
       ReferenceValue ref = environment.lookupContainer(new Identifier(decl.name), inContainer:pkg);
       if(ref != null){
         //memory has already been allocated for class (due to import in another class. Store it at that location
@@ -59,15 +78,25 @@ class Runner {
       else {
         ref = environment._newValue(clazz);
       }
-      environment.values[pkg].addMember(decl.name, ref);
+      environment.values[pkg].addMember(new Identifier(decl.name), ref);
+      
+      //add imports
+      imports.forEach((ref) {
+        clazz._namespaceClasses[environment.values[ref].name] = ref;
+      });
+      environment.loadEnv(ref);
       return ref;
-    });
-    
-    //add 
+    }).toList();
+    return staticScopes;
   }
   
   ReferenceValue getOrCreatePackage(select){
     if(select is Identifier){
+      //check if default package
+      if(select == Identifier.DEFAULT_PACKAGE){
+        print("returning default package");
+        return environment.defaultPackage;
+      }
       //Base case, get existing or create new root package
       ReferenceValue ref = environment.packages[select];
       if(ref == null){
@@ -94,7 +123,7 @@ class Runner {
     if(toEval is EvalTree)
       _current = toEval.origExpr;
       
-    Scope currentScope = environment.currentScope;
+    Scope currentScope = environment.instanceStack.last;
     var result = _eval(toEval);
     if(result is EvalTree){
       currentScope._statements.insertRange(0, 1, result);
@@ -128,7 +157,7 @@ class Runner {
     else if(statement is BinaryOp)
       return _evalBinaryOp(statement);
     else if(statement is Identifier)
-      return environment.lookupValue(statement);
+      return environment.lookupVariable(statement);
     else if(statement is String)
       return statement;
     else if(statement is bool)
@@ -178,7 +207,7 @@ class Runner {
   
   _evalNewObject(NewObject newObject){
     return new EvalTree(newObject, this, (List args){
-      ReferenceValue ref = environment.newObject(environment.lookupClass(newObject.name), args);
+      ReferenceValue ref = environment.newObject(environment.lookupContainer(newObject.name), args);
       environment.loadEnv(ref);
       return ref;
     }, newObject.arguments).execute();
@@ -223,13 +252,14 @@ class Runner {
   }
 
   _evalIf(If ifStat){
-      return new EvalTree(ifStat, this, (List args){
-        if(args[0])
-          environment.addBlockScope(ifStat.then);
-        else if(ifStat.elze != null){
-          environment.addBlockScope(ifStat.elze);      
-        }
-      }, [ifStat.condition]).execute();
+    throw "if wont work yet";
+//      return new EvalTree(ifStat, this, (List args){
+//        if(args[0])
+//          environment.addBlockScope(ifStat.then);
+//        else if(ifStat.elze != null){
+//          environment.addBlockScope(ifStat.elze);      
+//        }
+//      }, [ifStat.condition]).execute();
   }
   
   _evalAssignment(Assignment assign){

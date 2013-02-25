@@ -82,7 +82,7 @@ class Program {
   }
   
   CompilationUnit parseCompilationUnit(Map json){
-    Identifier package = const Identifier("");
+    Identifier package = Identifier.DEFAULT_PACKAGE;
     if(json.containsKey('package'))
       package = parseObject(json['package']);
     
@@ -91,8 +91,13 @@ class Program {
       imports = json['imports'].mappedBy(parseObject).toList();
     
     List typeDeclarations = [];
-    if(json.containsKey('type_declarations'))
-      typeDeclarations = json['type_declarations'].mappedBy(parseObject).toList();
+    var jsonDecl = json['type_declarations'];
+    if(jsonDecl != null && jsonDecl is List)
+      typeDeclarations = json['type_declarations'].map(parseObject).toList();
+    else {
+      typeDeclarations = new List<ClassDecl>();
+      typeDeclarations.add(parseObject(jsonDecl));
+    }
       
       
     return new CompilationUnit.fromJson(json, package, imports, typeDeclarations);
@@ -102,7 +107,7 @@ class Program {
     ClassDecl clazz = new ClassDecl.fromJson(json, json['members'].mappedBy(parseObject).toList());
     //if class has a main method, create a selector for it
     if(clazz.staticMethods.any((MethodDecl m) => m.name == "main" && m.type == MethodType.main))
-      this.mainSelector = new MemberSelect.mainMethod(new Identifier(clazz.name));
+      this.mainSelector = new MemberSelect.mainMethod(new MemberSelect(new Identifier(clazz.name), Identifier.CONSTRUCTOR));
     
     return clazz;  
   }

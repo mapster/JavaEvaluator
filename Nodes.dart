@@ -116,6 +116,8 @@ class Identifier extends ASTNode {
   
   const Identifier(this.name, [int startPos, int endPos]) : super(startPos:startPos, endPos:endPos);
   Identifier.fromJson(Map json) : name = json['value'], super.fromJson(json);
+  static const Identifier CONSTRUCTOR = const Identifier("");
+  static const Identifier DEFAULT_PACKAGE = const Identifier("");
   
   int get hashCode => 17 * 37 + name.hashCode; 
   
@@ -182,6 +184,7 @@ class MemberSelect extends ASTNode {
 //  MemberSelect(final member_id, this.owner, [int startPos, int endPos]) : this.member_id = new Identifier(member_id), super(startPos, endPos);
   MemberSelect.fromJson(Map json, this.owner) : this.member_id = new Identifier(json['member_id']), super.fromJson(json);
   const MemberSelect.mainMethod(this.owner) : member_id = const Identifier("main");
+  MemberSelect(this.member_id, this.owner) : super();
   
   String toString() => "$owner.$member_id";
 }

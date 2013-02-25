@@ -40,6 +40,9 @@ class Printer {
     else if(astNode is ClassDecl){
       return _classToHtml(astNode);
     }
+    else if(astNode is CompilationUnit){
+      return _compUnitToHtml(astNode); 
+    }
     else if(astNode is Identifier){
       return _identifierToHtml(astNode, newLine);
     }
@@ -113,6 +116,31 @@ class Printer {
     body.children = node.members.mappedBy((m) => _toHtml(m, true)).toList().reduce(new List<Element>(), _reduceLists);
     
     return [header, body, _newElement(newLine: true, text: "}")];
+  }
+  
+  static List<Element> _compUnitToHtml(CompilationUnit node){
+    List<Element> unit = new List<Element>();
+    
+    if(node.package != Identifier.DEFAULT_PACKAGE){
+      DivElement pkg = _newElement(nodeid: node.nodeId, newLine:true);
+      pkg.children.add(_newElement(keyword:true, text: "package "));
+      pkg.children.addAll(_toHtml(node.package, false));
+      pkg.children.add(_newElement(text: ";"));
+      unit.add(pkg);
+    }
+    
+    node.imports.forEach((MemberSelect import){
+      DivElement e = _newElement(nodeid:import.nodeId, newLine:true);
+      e.children.addAll(_toHtml(import, false));
+      e.children.add(_newElement(text:";"));
+      unit.add(e);
+    });
+    
+    node.typeDeclarations.forEach((ClassDecl decl){
+      unit.addAll(_toHtml(decl, true));
+    });
+    
+    return unit;
   }
   
   static List<Element> _identifierToHtml(Identifier node, bool newLine) => 
