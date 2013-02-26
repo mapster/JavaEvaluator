@@ -7,6 +7,7 @@ class Environment {
   final List<ClassScope> instanceStack = new List<ClassScope>();
   final ReferenceValue defaultPackage = new ReferenceValue(0);
   final Map<Identifier, ReferenceValue> packages = new Map<Identifier, ReferenceValue>();
+  Scope get currentScope => instanceStack.last.currentScope;
   
   Environment(this._runner){
     values[defaultPackage] = new Package(const Identifier(""));
@@ -54,6 +55,7 @@ class Environment {
   }
   
   ReferenceValue lookupContainer(Identifier name, {ReferenceValue inContainer}){
+    print("looking up container: $name");
     var found = null;
     if(?inContainer){
       //lookup in specified container, must exist!
@@ -62,6 +64,9 @@ class Environment {
     else if(!instanceStack.isEmpty){
       //lookup in current namespace
       found = instanceStack.last.lookupContainer(name);
+      //check classes in package
+      if(found == null)
+        found = values[instanceStack.last.package].lookupContainer(name);
     }
     
     if(found != null)
@@ -109,6 +114,7 @@ class Environment {
 //  }
 //  
   ReferenceValue newObject(ReferenceValue staticRef, List<Value> constructorArgs){
+    print("type: ${staticRef.runtimeType}");
     StaticClass clazz = values[staticRef];
     
     List<EvalTree> initializers = new List<EvalTree>();
@@ -117,13 +123,14 @@ class Environment {
     clazz._declaration.instanceVariables.forEach((Variable v){
       Identifier id = new Identifier(v.name);
       inst.newVariable(id);
-      initializers.add(new EvalTree(v, _runner, (List args) => assign(id, args.first), [v.initializer]));
+      if(v.initializer != null)
+        initializers.add(new EvalTree(v, _runner, (List args) => assign(id, args.first), [v.initializer]));
     });
     
     //add method call to constructor
     initializers.add(new EvalTree(null, _runner, (List args){
-      loadMethod(Identifier.CONSTRUCTOR, args);
-      var toReturn = new EvalTree(null, _runner);
+      loadMethod(Identifier.CONSTRUCTOR, constructorArgs);
+      var toReturn = new EvalTree(null, _runner, (List args) => inst, []);
       _runner.returnValues.addLast(toReturn);
       return toReturn;
     }, []));
@@ -421,7 +428,7 @@ abstract class Scope {
   final Map<Identifier, Value> _variables = new Map<Identifier, Value>();
   final List<dynamic> _statements;
   bool  get isDone;
-//  Scope get currentScope;
+  Scope get currentScope;
   bool  get _isDone => _statements.isEmpty;
   
   Scope(this._statements);
@@ -472,12 +479,18 @@ abstract class ClassScope extends Scope {
         return false;
     return super._isDone;
   }
+  Scope get currentScope {
+    if(_methodStack.isEmpty)
+      return this;
+    return _methodStack.last.currentScope;
+  }
   
   ClassScope(List<dynamic> statements) : super(statements);
   
   void loadMethod(Identifier name, List<Value> args, List<TypeNode> argTypes){
     List<MethodDecl> methods = methodDeclarations;
 
+    print("looking for $name: $argTypes in  $methods");
     MethodDecl method = methods.singleMatching((m) => m.name == name.name && _checkParamArgTypeMatch(m.type.parameters, argTypes));
     _methodStack.addLast(new BlockScope(method.body));
     for(int i = 0; i < method.parameters.length; i++){
@@ -521,6 +534,7 @@ abstract class ClassScope extends Scope {
   }
   
   ReferenceValue lookupContainer(Identifier name){
+    print("namespace classes: ${_namespaceClasses.keys.reduce("", (r, c) => "$r, $c")}");
     return _namespaceClasses[name];
   }
   
@@ -556,7 +570,7 @@ abstract class ClassScope extends Scope {
 
 class BlockScope extends Scope {
   Scope _subBlock;
-//  Scope get currentScope => _subBlock == null ? this : _subBlock.currentScope;
+  Scope get currentScope => _subBlock == null ? this : _subBlock.currentScope;
   bool get isDone => _subBlock == null ? _statements.isEmpty : _subBlock.isDone && _statements.isEmpty;
   
   BlockScope(List<dynamic> statements) : super(statements);

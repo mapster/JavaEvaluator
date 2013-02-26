@@ -284,6 +284,58 @@ class Printer {
     return r;
   }
   
+  static staticEnv(Environment env){
+    DivElement root = new DivElement();
+    root.children.add(packageToHtml(env.defaultPackage, env));
+    root.children.addAll(env.packages.values.map((pkg) => packageToHtml(pkg, env)));
+    return root;
+  }
+  
+  static containerToHtml(ReferenceValue ref, Environment env){
+    if(env.values[ref] is Package)
+      return packageToHtml(ref, env);
+    return staticClassToHtml(ref, env);
+  }
+
+  static packageToHtml(ReferenceValue pkgref, Environment env){
+    Package pkg = env.values[pkgref];
+    DivElement pkgRoot = new DivElement();
+    pkgRoot.attributes['class'] = "package";
+    
+    DivElement name = new DivElement();
+    name.attributes['class'] = "name";
+    name.text = pkg.name.toString();
+    
+    DivElement members = new DivElement();
+    members.attributes['class'] = "members";
+    members.children = pkg._members.values.map((ref) => containerToHtml(ref, env)).toList();
+
+    pkgRoot.children..add(name)..add(members);
+    return pkgRoot;
+  }
+  
+  static staticClassToHtml(ReferenceValue ref, Environment env){
+    StaticClass clazz = env.values[ref];
+    DivElement root = new DivElement();
+    root.attributes['class'] = "class";
+    
+    DivElement name = new DivElement();
+    name.attributes['class'] = "name";
+    name.text = clazz.name.toString();
+    
+    DivElement variables = new DivElement();
+    variables.attributes['class'] = "variables";
+    variables.children = clazz._variables.keys.map((id) {
+      DivElement el = new DivElement();
+      el.attributes['class'] = "assignment";
+      el.text = "$id: ${clazz._variables[id]}";
+      return el;
+    }).toList();
+    
+    root.children..add(name)..add(variables);
+    return root;
+  }
+  
   static scopeToHtml(Scope sc){
     DivElement root = new DivElement();
     root.classes.add("scope");

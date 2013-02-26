@@ -116,7 +116,7 @@ class Identifier extends ASTNode {
   
   const Identifier(this.name, [int startPos, int endPos]) : super(startPos:startPos, endPos:endPos);
   Identifier.fromJson(Map json) : name = json['value'], super.fromJson(json);
-  static const Identifier CONSTRUCTOR = const Identifier("");
+  static const Identifier CONSTRUCTOR = const Identifier("<init>");
   static const Identifier DEFAULT_PACKAGE = const Identifier("");
   
   int get hashCode => 17 * 37 + name.hashCode; 
@@ -224,6 +224,10 @@ class MethodDecl extends ASTNode {
       return true;
     
     return _name == other._name && type == other.type; 
+  }
+  
+  String toString() {
+    return "$name: $type";
   }
 }
 

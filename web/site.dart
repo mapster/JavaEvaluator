@@ -90,6 +90,7 @@ void printEnv(){
 //  root.children = [hValues, values];
 //
 //  environment.children = [root, Printer.scopeToHtml(runner.environment.currentScope)];
+  environment.children = [Printer.staticEnv(runner.environment)];
 }
 
 //void drawArrow(Pos p1, Pos p2, num width){

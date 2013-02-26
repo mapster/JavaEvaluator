@@ -66,7 +66,8 @@ class Runner {
       decl.staticVariables.forEach((Variable v){
         Identifier id = new Identifier(v.name);
         clazz.newVariable(id);
-        initializers.add(new EvalTree(v, this, (List args) => environment.assign(id, args.first),[v.initializer]));
+        if(v.initializer != null)
+          initializers.add(new EvalTree(v, this, (List args) => environment.assign(id, args.first),[v.initializer]));
       });
       
       //check if previously declared
@@ -123,10 +124,11 @@ class Runner {
     if(toEval is EvalTree)
       _current = toEval.origExpr;
       
-    Scope currentScope = environment.instanceStack.last;
+    print("root of step: ${_current}");
+    Scope currentScope = environment.currentScope;
     var result = _eval(toEval);
     if(result is EvalTree){
-      currentScope._statements.insertRange(0, 1, result);
+      currentScope.pushStatement(result);
     }
     print("step: $current - id: ${current.nodeId}");
   }
