@@ -27,7 +27,6 @@ class Runner {
     print((environment.values[environment.defaultPackage] as Package)._members);
     if(program.mainSelector != null){
       print("loading main method: ${program.mainSelector}");
-
       ReferenceValue inContainer;
       if(program.mainSelector.owner is MemberSelect)
         inContainer = environment.memberSelectContainer(program.mainSelector.owner);
@@ -44,7 +43,7 @@ class Runner {
     ReferenceValue pkg = getOrCreatePackage(unit.package);
     
     //evaluate imports
-    List<ReferenceValue> imports = unit.imports.mappedBy((sel){
+    List<ReferenceValue> imports = unit.imports.map((sel){
       //get enclosing pkg
       ReferenceValue enclosing = getOrCreatePackage(sel.owner);
       ReferenceValue import = enclosing; //default to entire package (star imports)
@@ -58,7 +57,7 @@ class Runner {
     }).toList();
     
     //Create all the static scopes, add imports, and add them to associated packages
-    List<ReferenceValue> staticScopes = unit.typeDeclarations.mappedBy((ClassDecl decl){
+    List<ReferenceValue> staticScopes = unit.typeDeclarations.map((ClassDecl decl){
       print("loading class: ${decl.name}");
       List<EvalTree> initializers = new List<EvalTree>();
       StaticClass clazz = new StaticClass(pkg, decl, initializers);
@@ -202,7 +201,7 @@ class Runner {
       if(type.isPrimitive)
         value = TypeNode.DEFAULT_VALUES[type.type];
       
-      return _newArray(args.mappedBy((arg) => arg.value).toList(), value, 
+      return _newArray(args.map((arg) => arg.value).toList(), value, 
           newArray.dimensions.reduce(type, (TypeNode r, e) => new TypeNode(r)));
     }, newArray.dimensions.toList());
   }

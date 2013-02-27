@@ -114,7 +114,6 @@ class Environment {
 //  }
 //  
   ReferenceValue newObject(ReferenceValue staticRef, List<Value> constructorArgs){
-    print("type: ${staticRef.runtimeType}");
     StaticClass clazz = values[staticRef];
     
     List<EvalTree> initializers = new List<EvalTree>();
@@ -130,9 +129,9 @@ class Environment {
     //add method call to constructor
     initializers.add(new EvalTree(null, _runner, (List args){
       loadMethod(Identifier.CONSTRUCTOR, constructorArgs);
-      var toReturn = new EvalTree(null, _runner, (List args) => inst, []);
-      _runner.returnValues.addLast(toReturn);
-      return toReturn;
+//      var toReturn = new EvalTree(null, _runner, (List args) => inst, []);
+//      _runner.returnValues.addLast(toReturn);
+//      return toReturn;
     }, []));
  
     return _newValue(inst);

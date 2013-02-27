@@ -108,12 +108,12 @@ class Printer {
 
   static List<Element> _classToHtml(ClassDecl node) {
     DivElement header = _newElement(nodeid: node.nodeId, newLine: true);
-    header.children.addAll(node.modifiers.mappedBy((e) => _newElement(keyword: true, text: "$e ")).toList());
+    header.children.addAll(node.modifiers.map((e) => _newElement(keyword: true, text: "$e ")).toList());
     header.children.add(_newElement(text: "class", keyword: true));
     header.children.add(_newElement(text: " ${node.name} {"));
     
     DivElement body = _newElement(indent: true);
-    body.children = node.members.mappedBy((m) => _toHtml(m, true)).toList().reduce(new List<Element>(), _reduceLists);
+    body.children = node.members.map((m) => _toHtml(m, true)).toList().reduce(new List<Element>(), _reduceLists);
     
     return [header, body, _newElement(newLine: true, text: "}")];
   }
@@ -154,7 +154,7 @@ class Printer {
     
     //the then-block
     DivElement then = _newElement(indent: true);
-    then.children = node.then.mappedBy((e) => _toHtml(e, true)).toList().reduce(new List<Element>(), _reduceLists);
+    then.children = node.then.map((e) => _toHtml(e, true)).toList().reduce(new List<Element>(), _reduceLists);
     
     List<Element> ifThen = [header, then, _newElement(text: "}")];
     if(node.elze == null)
@@ -165,7 +165,7 @@ class Printer {
     elseHeader.children.addAll([_newElement(keyword: true, text: "else"), _newElement(text: " {")]);
     
     DivElement elseBody = _newElement(indent: true);
-    elseBody.children = node.elze.mappedBy((e) => _toHtml(e, true)).toList().reduce(new List<Element>(), _reduceLists);
+    elseBody.children = node.elze.map((e) => _toHtml(e, true)).toList().reduce(new List<Element>(), _reduceLists);
 
     ifThen.addAll([elseHeader, elseBody, _newElement(newLine:true, text:"}")]);
     return ifThen;
@@ -184,7 +184,7 @@ class Printer {
   static List<Element> _methodCallToHtml(MethodCall node, bool newLine) {
     Element element = _newElement(nodeid:node.nodeId, newLine:newLine);
     element.children.add(_newElement(text:"${node.select.toString()}("));
-    element.children.addAll(node.arguments.mappedBy((arg) => _toHtml(arg, false)).toList().reduce(new List<Element>(), _reduceCommaSeparated));    
+    element.children.addAll(node.arguments.map((arg) => _toHtml(arg, false)).toList().reduce(new List<Element>(), _reduceCommaSeparated));    
     element.children.add(_newElement(text:")"));
     if(newLine) element.children.add(_newElement(text:";"));
     return [element];
@@ -192,15 +192,15 @@ class Printer {
 
   static List<Element> _methodDeclToHtml(MethodDecl node, bool newLine) {
     DivElement header = _newElement(newLine:newLine, nodeid:node.nodeId);
-    header.children.addAll(node.modifiers.mappedBy((m) => _newElement(text:"$m ", keyword: true)).toList());
+    header.children.addAll(node.modifiers.map((m) => _newElement(text:"$m ", keyword: true)).toList());
     if(node.type.returnType.type != null)
       header.children.addAll(_toHtml(node.type.returnType, false));
     header.children.add(_newElement(text:" ${node.publicName}("));
-    header.children.addAll(node.parameters.mappedBy((p) => _toHtml(p, false)).toList().reduce(new List<Element>(), _reduceCommaSeparated));
+    header.children.addAll(node.parameters.map((p) => _toHtml(p, false)).toList().reduce(new List<Element>(), _reduceCommaSeparated));
     header.children.add(_newElement(text:") {"));
     
     DivElement body = _newElement(indent:true);
-    body.children = node.body.mappedBy((e) => _toHtml(e, true)).toList().reduce(new List<Element>(), _reduceLists);
+    body.children = node.body.map((e) => _toHtml(e, true)).toList().reduce(new List<Element>(), _reduceLists);
     
     return [header, body, _newElement(newLine:true, text:"}")];
   }

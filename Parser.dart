@@ -66,18 +66,18 @@ class Program {
     }
   }
 
-  parseMethodCall(json) => new MethodCall.fromJson(json, parseObject(json['select']), json['arguments'].mappedBy(parseObject).toList());
+  parseMethodCall(json) => new MethodCall.fromJson(json, parseObject(json['select']), json['arguments'].map(parseObject).toList());
 
   parseIf(json) => new If.fromJson(json, parseObject(json['condition']), 
-                    json['then']['NODE_TYPE'] == 'block' ? json['then']['statements'].mappedBy(parseObject).toList() : [parseObject(json['then'])],
-                    json['else'] == null ? null : (json['else']['NODE_TYPE'] == 'block' ? json['else']['statements'].mappedBy(parseObject).toList() : [parseObject(json['then'])]));
+                    json['then']['NODE_TYPE'] == 'block' ? json['then']['statements'].map(parseObject).toList() : [parseObject(json['then'])],
+                    json['else'] == null ? null : (json['else']['NODE_TYPE'] == 'block' ? json['else']['statements'].map(parseObject).toList() : [parseObject(json['then'])]));
 
   parseLiteral(json) =>  new Literal.fromJson(json);
 
   parseAssignment(Map json) => new Assignment.fromJson(json, parseObject(json['variable']), parseObject(json['expr']));
 
   parseMethod(Map json) {
-    MethodDecl method = new MethodDecl.fromJson(json, new TypeNode(parseObject(json['type'])), json['parameters'].mappedBy(parseObject).toList(), json['body']['statements'].mappedBy(parseObject).toList());
+    MethodDecl method = new MethodDecl.fromJson(json, new TypeNode(parseObject(json['type'])), json['parameters'].map(parseObject).toList(), json['body']['statements'].map(parseObject).toList());
     return method;
   }
   
@@ -88,7 +88,7 @@ class Program {
     
     List imports = [];
     if(json.containsKey('imports'))
-      imports = json['imports'].mappedBy(parseObject).toList();
+      imports = json['imports'].map(parseObject).toList();
     
     List typeDeclarations = [];
     var jsonDecl = json['type_declarations'];
@@ -104,7 +104,7 @@ class Program {
   }
   
   ClassDecl parseClass(Map json){
-    ClassDecl clazz = new ClassDecl.fromJson(json, json['members'].mappedBy(parseObject).toList());
+    ClassDecl clazz = new ClassDecl.fromJson(json, json['members'].map(parseObject).toList());
     //if class has a main method, create a selector for it
     if(clazz.staticMethods.any((MethodDecl m) => m.name == "main" && m.type == MethodType.main))
       this.mainSelector = new MemberSelect.mainMethod(new MemberSelect(new Identifier(clazz.name), Identifier.CONSTRUCTOR));
