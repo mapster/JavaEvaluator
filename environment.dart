@@ -93,29 +93,6 @@ class Environment {
     return lookupContainer(select.member_id, inContainer:inCont);
   }
   
-  
-//  ReferenceValue createPackage(Identifier name, {ReferenceValue inContainer}){
-//    Package addTo = defaultPackage;
-//    if(?inContainer)
-//      addTo = values[inContainer];
-//    
-//    ReferenceValue ref = _newValue(new Package(name));
-//    addTo.addMember(name, ref);
-//    return ref;
-//  }
-  
-  /**
-   * Initializes a class instance, i.e. stores all fields with an initial value in memory and returns the class environment.
-   */
-  //TODO potential mess with primitive values
-//  ReferenceValue newClassInstance(ClassDecl clazz, [bool static = false]){
-//    ClassScope scope = new ClassScope(clazz, static);
-//    if(static)
-//      staticContext.newVariable(new Identifier(clazz.name),_newValue(scope));
-//    
-//    return _newValue(scope);
-//  }
-//  
   ReferenceValue newObject(ReferenceValue staticRef, List<Value> constructorArgs){
     StaticClass clazz = values[staticRef];
     
@@ -136,50 +113,17 @@ class Environment {
  
     return _newValue(inst);
   }
-//  
-//  ClassDecl lookUpClass(name){
-//    if(name is Identifier){
-//      return values[staticContext.lookUp(name)].clazz;
-//    }
-//    else throw "Don't know how to look up class using ${name.runtimeType}."; 
-//  }
-//  
+
   ReferenceValue newArray(int size, Value value, TypeNode type) {
     return _newValue(new Array(size, value, type));
   }
-//  
-//  Value lookUpValue(variable){
-//    bool loadedEnv = false;
-//    if(variable is MemberSelect){
-//      loadedEnv = loadEnv(lookUpValue(variable.owner));
-//      variable = variable.member_id;
-//    }
-//    
-//    if(variable is! Identifier)
-//      throw "Can't lookup value by using ${variable.runtimeType}";
-//    
-//    //TODO add static context! (it may have been added?)      
-//    Value val = currentContext.lookUp(variable);
-//    
-//    if(val == null){
-//      if(loadedEnv)
-//        throw "Variable [${variable.name}] not declared.";
-//        
-//      val = staticContext.lookUp(variable);
-//    }
-//    
-//    if(loadedEnv)
-//      unloadEnv();
-//      
-//    return val;
-//  }
-//  
+
   ReferenceValue _newValue(dynamic value){
     ReferenceValue addr = new ReferenceValue(++_counter);
     values[addr] = value;
     return addr;
   }
-//  
+
   void loadMethod(Identifier name, List args, {ReferenceValue inContainer}) {
     if(?inContainer)
       loadEnv(inContainer);
@@ -229,199 +173,6 @@ class Array {
   String toString() => _list.toString();
 }
 
-//class Scope {
-//  final Map<Identifier, Value> assignments = new Map<Identifier, Value>();
-//  final List<dynamic> _statements = [];
-//  final bool isMethod;
-//  Scope _subscope;
-//  
-//  Scope get currentScope => _subscope != null ? _subscope.currentScope : this; 
-//  
-//  Scope.block(List statements) : isMethod = false { _statements.addAll(statements); }
-//  Scope.method(List statements) : isMethod = true { _statements.addAll(statements); }
-//  
-//  String toString() {
-//    var local = "[${_statements.reduce("", (prev,e) => "$e${prev.length > 0 ? "," : ""} $prev")}]";
-//    return "$local${_subscope != null ? ", $_subscope" : ""}";
-//  }
-//  
-//  void newVariable(Identifier name, [Value value = ReferenceValue.invalid]){
-//    if(_subscope != null){
-//        _subscope.newVariable(name, value);
-//    }
-//    else {
-//      assignments[name] = value;
-//      print("declaring: $name ${value is ReferenceValue ? " at [${value}]" : ""} with value $value of type ${value.runtimeType}");
-//    }
-//  }
-//  
-//  bool assign(Identifier name, Value value){
-//    if(_subscope != null && _subscope.assign(name, value))
-//      return true;
-//    
-//    if(!assignments.containsKey(name))
-//      return false;
-//        
-//    assignments[name] = value;
-//    return true;
-//  }
-//  
-//  Value lookUp(Identifier variable){
-//    if(_subscope != null){
-//      var val = _subscope.lookUp(variable);
-//      if(val != null)
-//        return val;
-//    }
-//  
-//    return assignments[variable];
-//  }
-//  
-//  dynamic popStatement(){
-//    if(_subscope != null && _subscope.isDone)
-//        _subscope = null;
-//    
-//    if(_subscope != null)
-//      return _subscope.popStatement();
-//    
-//    return _statements.removeAt(0);
-//  }
-//  
-//  bool get isDone {
-//    if(_subscope != null && !_subscope.isDone)
-//      return false;
-//    return _statements.isEmpty;
-//  }
-//  
-//  void addSubScope(Scope s){
-//    if(_subscope != null)
-//      _subscope.addSubScope(s);
-//    else
-//      _subscope = s;
-//  }
-//}
-//
-//class ClassScope extends Scope {
-//  Scope _constructor;
-//  final List<Scope> _subscopes = new List<Scope>();
-//  final ClassDecl clazz;
-//  final bool isStatic;
-//  
-//  Scope get currentScope => _subscopes.isEmpty ? this : _subscopes.last.currentScope;
-//  
-//  ClassScope(this.clazz, this.isStatic) : super.block([]){
-//    if(isStatic)
-//      _statements.addAll(clazz.staticVariables);
-//  }
-//  
-//  String toString() {
-////    var local = super.toString();
-////    return "$local${_subscopes.isEmpty ? "" : ", ${_subscopes.reduce("", (r, e) => "$r, $e")}"}";
-//    return "$assignments";
-//  }
-//  
-//  addSubScope(Scope s) => _subscopes.add(s);
-//  addSubBlock(Scope s) => _subscopes.last.addSubScope(s);
-//  
-//  void newVariable(Identifier name, [Value value = ReferenceValue.invalid]){
-//    if(_subscopes.isEmpty)
-//      super.newVariable(name, value);
-//    else
-//    _subscopes.last.newVariable(name, value);
-//  }
-//  
-//  bool assign(Identifier name, Value value){
-//    if(!_subscopes.isEmpty && _subscopes.last.assign(name, value))
-//        return true;
-//    
-//    return super.assign(name, value);
-//  }
-//  
-//  Value lookUp(Identifier variable){
-//    if(!_subscopes.isEmpty){
-//      var val = _subscopes.last.lookUp(variable); 
-//      if(val != null)
-//        return val;
-//    }
-//    
-//    return super.lookUp(variable);
-//  }
-//
-//  methodReturn(){
-//    _subscopes.removeLast();    
-//  }
-//  
-//  dynamic popStatement() {
-//    //remove subscopes untill either all are removed or one has statements
-//    while(!_subscopes.isEmpty && _subscopes.last.isDone)
-//      _subscopes.removeLast();
-//    
-//    //if there are still subscopes and the last is not done, pop statement
-//    if(!_subscopes.isEmpty && !_subscopes.last.isDone)
-//      return _subscopes.last.popStatement();
-//    
-//    //else pop own statement.
-//    if(!super.isDone)
-//      return super.popStatement();
-//    
-//    //check if constructor is still running
-//    if(!_constructor.isDone)
-//      return _constructor.popStatement();
-//  }
-//  
-//  bool get isDone {
-//    if(_subscopes.any((Scope sc) => !sc.isDone))
-//      return false;
-//    
-//    if(_constructor != null && !_constructor.isDone)
-//      return false;
-//    
-//    return super.isDone;
-//  }
-//  
-//  void loadMethod(Identifier name, List args, List<TypeNode> argTypes) {
-//    List<MethodDecl> methods = isStatic ? clazz.staticMethods : clazz.instanceMethods;
-//
-//    MethodDecl method = methods.singleMatching((m) => m.name == name.name && _checkParamArgTypeMatch(m.type.parameters, argTypes));
-//    addSubScope(new Scope.method(method.body));
-//    for(int i = 0; i < method.parameters.length; i++){
-//      newVariable(new Identifier(method.parameters[i].name), args[i]);
-//    }
-//  }
-//  
-//  void loadConstructor(List<Value> args, List<TypeNode> argTypes){
-//    if(args.isEmpty){
-//      if(!clazz.constructors.isEmpty)
-//        throw "The empty constructor is undefined!";
-//      return;
-//    }
-//      
-//    MethodDecl method = clazz.constructors.singleMatching((m) => _checkParamArgTypeMatch(m.type.parameters, argTypes));
-//    _constructor = new Scope.method(method.body);
-//    for(int i = 0; i < method.parameters.length; i++){
-//      _constructor.newVariable(new Identifier(method.parameters[i].name), args[i]);
-//    }
-//  }
-//  
-//  bool _checkParamArgTypeMatch(List<TypeNode> parameters, List<TypeNode> args) {
-//    if(parameters.length != args.length)
-//      return false;
-//    
-//    for(int i = 0; i < parameters.length; i++){
-//      TypeNode p = parameters[i];
-//      TypeNode a = args[i];
-//
-//      if(p != a)
-//        return false;
-//    }
-//    return true;
-//  }
-//}
-
-
-// new class structure
-//
-//
-//
 
 abstract class Scope {
   final Map<Identifier, Value> _variables = new Map<Identifier, Value>();
