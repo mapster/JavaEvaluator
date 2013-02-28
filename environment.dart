@@ -62,6 +62,9 @@ class Environment {
       //lookup in specified container, must exist!
       found = values[inContainer].lookupContainer(name);
     }
+    else if(name == Identifier.DEFAULT_PACKAGE){
+      return defaultPackage;
+    }
     else if(!instanceStack.isEmpty){
       //lookup in current namespace
       found = instanceStack.last.lookupContainer(name);
@@ -74,10 +77,6 @@ class Environment {
       print("found: $found");
       return found;
     }
-    
-    //if not found, check if default package
-    if(name == Identifier.CONSTRUCTOR)
-      return defaultPackage;
     
     //check if package
     return packages[name];

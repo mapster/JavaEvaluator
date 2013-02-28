@@ -1,5 +1,5 @@
 class Mains {
-    public static void main(String args){
+    public static void main(String[] args){
         int x = 5;
         x = 10;
         x = Mains.funksjon("hei");

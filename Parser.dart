@@ -12,7 +12,7 @@ part 'types.dart';
 
 class Program {
   final List<CompilationUnit> compilationUnits;
-  MemberSelect mainSelector;
+  List<MemberSelect> mainSelectors = new List<MemberSelect>();
   
   Program(List<Map<String, dynamic>> ast) : compilationUnits = new List<CompilationUnit>(){
     ast.forEach((Map unit){
@@ -82,7 +82,7 @@ class Program {
   }
   
   CompilationUnit parseCompilationUnit(Map json){
-    Identifier package = Identifier.DEFAULT_PACKAGE;
+    dynamic package = Identifier.DEFAULT_PACKAGE;
     if(json.containsKey('package'))
       package = parseObject(json['package']);
     
@@ -99,16 +99,19 @@ class Program {
       typeDeclarations.add(parseObject(jsonDecl));
     }
       
-      
+    //if a class has a main method, create a selector for it
+   List<ClassDecl> mains = typeDeclarations.where((ClassDecl clazz) =>
+       clazz.staticMethods.any((MethodDecl m) => m.name == "main" && m.type == MethodType.main)).toList();
+   mains.forEach((ClassDecl clazz) {
+     mainSelectors.add(new MemberSelect.mainMethod(new MemberSelect(new Identifier(clazz.name), package)));
+   });
+    
+    
     return new CompilationUnit.fromJson(json, package, imports, typeDeclarations);
   }
   
   ClassDecl parseClass(Map json){
     ClassDecl clazz = new ClassDecl.fromJson(json, json['members'].map(parseObject).toList());
-    //if class has a main method, create a selector for it
-    if(clazz.staticMethods.any((MethodDecl m) => m.name == "main" && m.type == MethodType.main))
-      this.mainSelector = new MemberSelect.mainMethod(new MemberSelect(new Identifier(clazz.name), Identifier.CONSTRUCTOR));
-    
     return clazz;  
   }
 

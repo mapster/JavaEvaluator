@@ -24,15 +24,15 @@ class Runner {
     while(!isDone())
       step();
     
-    print((environment.values[environment.defaultPackage] as Package)._members);
-    if(program.mainSelector != null){
-      print("loading main method: ${program.mainSelector}");
+    MemberSelect main = program.mainSelectors.last;
+    if(main != null){
+      print("main selector: ${main}");
       ReferenceValue inContainer;
-      if(program.mainSelector.owner is MemberSelect)
-        inContainer = environment.memberSelectContainer(program.mainSelector.owner);
-      else inContainer = environment.lookupContainer(program.mainSelector.owner);
+      if(main.owner is MemberSelect)
+        inContainer = environment.memberSelectContainer(main.owner);
+      else inContainer = environment.lookupContainer(main.owner);
       
-      environment.loadMethod(program.mainSelector.member_id, 
+      environment.loadMethod(main.member_id, 
           [environment.newArray(0, null, const TypeNode.fixed(TypeNode.STRING))], 
           inContainer:inContainer);
     }
