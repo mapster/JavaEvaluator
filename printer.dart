@@ -262,6 +262,7 @@ class Printer {
 
   static List<Element> _variableToHtml(Variable node, bool newLine) {
     Element element = _newElement(nodeid:node.nodeId, newLine:newLine);
+    element.children.addAll(node.modifiers.map((m) => _newElement(text:"$m ", keyword: true)).toList());
     element.children.addAll(_toHtml(node.type, false));
     element.children.add(_newElement(text:" ${node.name}"));
     if(node.initializer != null){
@@ -286,6 +287,7 @@ class Printer {
   
   static staticEnv(Environment env){
     DivElement root = new DivElement();
+    root.classes.add("box");
     root.children.add(packageToHtml(env.defaultPackage, env));
     root.children.addAll(env.packages.values.map((pkg) => packageToHtml(pkg, env)));
     return root;
@@ -300,11 +302,14 @@ class Printer {
   static packageToHtml(ReferenceValue pkgref, Environment env){
     Package pkg = env.values[pkgref];
     DivElement pkgRoot = new DivElement();
+    pkgRoot.classes.add("box");
     pkgRoot.attributes['class'] = "package";
     
     DivElement name = new DivElement();
     name.attributes['class'] = "name";
     name.text = pkg.name.toString();
+    if(pkg.name == Identifier.DEFAULT_PACKAGE)
+      name.text = "Default Package";
     
     DivElement members = new DivElement();
     members.attributes['class'] = "members";
@@ -315,50 +320,48 @@ class Printer {
   }
   
   static staticClassToHtml(ReferenceValue ref, Environment env){
-    StaticClass clazz = env.values[ref];
+    return classToHtml(env.values[ref], env); 
+  }
+  
+  static classToHtml(ClassScope clazz, Environment env){
     DivElement root = new DivElement();
-    root.attributes['class'] = "class";
+    root.classes.addAll(["box", "class"]);
     
     DivElement name = new DivElement();
-    name.attributes['class'] = "name";
+    name.classes.add("name");
     name.text = clazz.name.toString();
     
-    DivElement variables = new DivElement();
-    variables.attributes['class'] = "variables";
-    variables.children = clazz._variables.keys.map((id) {
+    root.children..add(name)..add(variableMapToHtml(clazz._variables));
+    return root;
+  }
+  
+  static Element variableMapToHtml(Map<Identifier, Value> variables){
+    DivElement root = new DivElement();
+    root.classes.add("variables");
+    root.children = variables.keys.map((id) {
       DivElement el = new DivElement();
-      el.attributes['class'] = "assignment";
-      el.text = "$id: ${clazz._variables[id]}";
+      el.classes.add("assignment");
+      el.text = "$id: ${variables[id]}";
       return el;
     }).toList();
-    
-    root.children..add(name)..add(variables);
     return root;
   }
   
-  static scopeToHtml(Scope sc){
+  static currentScopeToHtml(Environment env){
+    DivElement clazz = classToHtml(env.instanceStack.last, env);
+    if(!env.instanceStack.last._methodStack.isEmpty)
+      clazz.children.add(blockToHtml(env.instanceStack.last._methodStack.last, env));
+    return clazz;
+  }
+  
+  static blockToHtml(BlockScope block, Environment env){
     DivElement root = new DivElement();
-    root.classes.add("scope");
-    if(sc is ClassScope){
-      HeadingElement title = new HeadingElement.h4();
-      title.text = "${sc.clazz.name}";
-      root.children.add(title);
-      root.children.addAll(sc.assignments.keys.map((id) => _envAssignToHtml(id, sc)).toList());
-      DivElement subscopes = new DivElement();
-      subscopes.children.addAll(sc._subscopes.map(scopeToHtml).toList());
-      root.children.add(subscopes);
-    }
-    else {
-      root.children.addAll(sc.assignments.keys.map((id) => _envAssignToHtml(id, sc)).toList());
-      if(sc._subscope != null)
-        root.children.add(scopeToHtml(sc._subscope));
-    }
+    root.classes.addAll(["box", "block"]);
+    
+    root.children.add(variableMapToHtml(block._variables));
+    if(block._subBlock != null)
+      root.children.add(blockToHtml(block._subBlock, env));
+    
     return root;
-  }
-  
-  static _envAssignToHtml(Identifier id, Scope sc){
-    DivElement assign = new DivElement();
-    assign.text = "$id: ${sc.assignments[id]}";
-    return assign;
   }
 }

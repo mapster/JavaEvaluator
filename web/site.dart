@@ -10,6 +10,7 @@ String toJsonUrl = "/tojson";
 
 DivElement java = query("#java");
 DivElement environment = query("#environment");
+TableElement memory = query("#memory");
 Program prog;
 Runner runner;
 InputElement stepBtn = query("#step");
@@ -42,9 +43,11 @@ selectCurrent(){
   if(prevs != null)
     prevs.forEach((e) => e.classes.remove("current"));
   
-  Element current = query("#node${runner.current.nodeId}");
-  if(current != null)
-    current.classes.add("current");
+  if(runner.current != null && runner.current.nodeId != ReferenceValue.invalid){
+    Element current = query("#node${runner.current.nodeId}");
+    if(current != null)
+      current.classes.add("current");
+  }
 }
 
 readFile(){
@@ -90,7 +93,19 @@ void printEnv(){
 //  root.children = [hValues, values];
 //
 //  environment.children = [root, Printer.scopeToHtml(runner.environment.currentScope)];
-  environment.children = [Printer.staticEnv(runner.environment)];
+  environment.children = [Printer.staticEnv(runner.environment), Printer.currentScopeToHtml(runner.environment)];
+  
+  memory.children = runner.environment.values.keys.map((key){
+    TableRowElement row = new TableRowElement();
+    TableCellElement addr = new TableCellElement();
+    TableCellElement val = new TableCellElement();
+    row.children = [addr, val];
+    
+    addr.text = "$key";
+    val.text = "${runner.environment.values[key]}";
+    
+    return row;
+  }).toList();
 }
 
 //void drawArrow(Pos p1, Pos p2, num width){

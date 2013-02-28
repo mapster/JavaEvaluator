@@ -35,6 +35,12 @@ div.arrow {
   background-color: red;  
 }
 
+div.box {
+  border: solid;
+  padding: 1px;
+  margin: 1px;
+}
+
 #environment .scope {
   border: solid  
 }

@@ -8,8 +8,9 @@ class ASTNode {
   final List<String> modifiers;
   final int nodeId;
   
-  const ASTNode({this.startPos, this.endPos, this.modifiers, this.nodeId: -1});
-    
+  const ASTNode.fixed({this.startPos, this.endPos, this.modifiers, this.nodeId: -1});
+  ASTNode({this.startPos, this.endPos, this.modifiers}) : this.nodeId = _counter++;  
+  
   ASTNode.fromJson(Map json) : this.nodeId = _counter++, this.startPos = json['startPos'], this.endPos = json['endPos'], this.modifiers = []{
     Map modifiersJson = json['modifiers']; 
     if(modifiersJson != null && modifiersJson.containsKey('modifiers')){
@@ -114,10 +115,11 @@ class CompilationUnit extends ASTNode {
 class Identifier extends ASTNode {
   final String name;
   
-  const Identifier(this.name, [int startPos, int endPos]) : super(startPos:startPos, endPos:endPos);
+  Identifier(this.name) : super();
+  const Identifier.fixed(this.name, [int startPos, int endPos]) : super.fixed(startPos:startPos, endPos:endPos);
   Identifier.fromJson(Map json) : name = json['value'], super.fromJson(json);
-  static const Identifier CONSTRUCTOR = const Identifier("<init>");
-  static const Identifier DEFAULT_PACKAGE = const Identifier("");
+  static const Identifier CONSTRUCTOR = const Identifier.fixed("<init>");
+  static const Identifier DEFAULT_PACKAGE = const Identifier.fixed("");
   
   int get hashCode => 17 * 37 + name.hashCode; 
   
@@ -183,7 +185,7 @@ class MemberSelect extends ASTNode {
   
 //  MemberSelect(final member_id, this.owner, [int startPos, int endPos]) : this.member_id = new Identifier(member_id), super(startPos, endPos);
   MemberSelect.fromJson(Map json, this.owner) : this.member_id = new Identifier(json['member_id']), super.fromJson(json);
-  const MemberSelect.mainMethod(this.owner) : member_id = const Identifier("main");
+  const MemberSelect.mainMethod(this.owner) : member_id = const Identifier.fixed("main"), super.fixed();
   MemberSelect(this.member_id, this.owner) : super();
   
   String toString() => "$owner.$member_id";
@@ -282,19 +284,19 @@ class Return extends ASTNode {
 class TypeNode extends ASTNode {
   final type;
 
-  TypeNode(this.type) {
+  TypeNode(this.type) : super() {
     if(!(type is String || type is TypeNode || type is Identifier || type == null)){
       throw "Invalid type: ${type.runtimeType}";
     }
   }
-  const TypeNode.fixed(this.type) : super();
+  const TypeNode.fixed(this.type) : super.fixed();
   
   bool get isPrimitive => type is String;
   bool get isArray => type is TypeNode;
   bool get isDeclared => type is Identifier;
   
   static const TypeNode VOID = const TypeNode.fixed("VOID");
-  static const TypeNode STRING = const TypeNode.fixed(const Identifier("String"));
+  static const TypeNode STRING = const TypeNode.fixed(const Identifier.fixed("String"));
   
   String toString(){
     if(isArray)

@@ -63,14 +63,14 @@ class Runner {
       StaticClass clazz = new StaticClass(pkg, decl, initializers);
       //declare static variables, and transform initializers into assignments
       decl.staticVariables.forEach((Variable v){
-        Identifier id = new Identifier(v.name);
+        Identifier id = new Identifier.fixed(v.name);
         clazz.newVariable(id);
         if(v.initializer != null)
           initializers.add(new EvalTree(v, this, (List args) => environment.assign(id, args.first),[v.initializer]));
       });
       
       //check if previously declared
-      ReferenceValue ref = environment.lookupContainer(new Identifier(decl.name), inContainer:pkg);
+      ReferenceValue ref = environment.lookupContainer(new Identifier.fixed(decl.name), inContainer:pkg);
       if(ref != null){
         //memory has already been allocated for class (due to import in another class. Store it at that location
         environment.values[ref] = clazz;
@@ -78,7 +78,7 @@ class Runner {
       else {
         ref = environment._newValue(clazz);
       }
-      environment.values[pkg].addMember(new Identifier(decl.name), ref);
+      environment.values[pkg].addMember(new Identifier.fixed(decl.name), ref);
       
       //add imports
       imports.forEach((ref) {
@@ -130,6 +130,7 @@ class Runner {
       currentScope.pushStatement(result);
     }
     print("step: $current - id: ${current.nodeId}");
+    print("");
   }
   
   bool isDone(){
@@ -290,9 +291,9 @@ class Runner {
 
   _evalVariable(Variable variable) {
     if(variable.initializer == null)
-      return new EvalTree(variable, this, (List args){environment.newVariable(new Identifier(variable.name));}, []).execute();
+      return new EvalTree(variable, this, (List args){environment.newVariable(new Identifier.fixed(variable.name));}, []).execute();
 
-    return new EvalTree(variable, this, (List args){environment.newVariable(new Identifier(variable.name), args.first);}, [variable.initializer]).execute();
+    return new EvalTree(variable, this, (List args){environment.newVariable(new Identifier.fixed(variable.name), args.first);}, [variable.initializer]).execute();
   }
   
   _evalReturn(Return ret){

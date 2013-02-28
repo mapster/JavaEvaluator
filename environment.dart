@@ -10,7 +10,7 @@ class Environment {
   Scope get currentScope => instanceStack.last.currentScope;
   
   Environment(this._runner){
-    values[defaultPackage] = new Package(const Identifier(""));
+    values[defaultPackage] = new Package(const Identifier.fixed(""));
   }
   
   void addBlock(List statements) => instanceStack.last.addBlock(new BlockScope(statements));
@@ -32,6 +32,7 @@ class Environment {
   }
   
   void assign(Identifier name, Value value){
+    //only looking in current instance scope because memberselect assignments should load environment
     if(!instanceStack.last.assign(name, value))
       throw "Variable $name not declared in current scope!";
   }
@@ -51,7 +52,7 @@ class Environment {
   }
   
   Value lookupIn(Identifier name, ReferenceValue envRef){
-    return values[envRef].lookup(name);
+    return values[envRef].lookupVariable(name);
   }
   
   ReferenceValue lookupContainer(Identifier name, {ReferenceValue inContainer}){
@@ -69,8 +70,10 @@ class Environment {
         found = values[instanceStack.last.package].lookupContainer(name);
     }
     
-    if(found != null)
+    if(found != null){
+      print("found: $found");
       return found;
+    }
     
     //if not found, check if default package
     if(name == Identifier.CONSTRUCTOR)
@@ -120,7 +123,7 @@ class Environment {
     ClassInstance inst = new ClassInstance(clazz, initializers);
     //declare all variables and create assignments of the initializers
     clazz._declaration.instanceVariables.forEach((Variable v){
-      Identifier id = new Identifier(v.name);
+      Identifier id = new Identifier.fixed(v.name);
       inst.newVariable(id);
       if(v.initializer != null)
         initializers.add(new EvalTree(v, _runner, (List args) => assign(id, args.first), [v.initializer]));
@@ -129,9 +132,6 @@ class Environment {
     //add method call to constructor
     initializers.add(new EvalTree(null, _runner, (List args){
       loadMethod(Identifier.CONSTRUCTOR, constructorArgs);
-//      var toReturn = new EvalTree(null, _runner, (List args) => inst, []);
-//      _runner.returnValues.addLast(toReturn);
-//      return toReturn;
     }, []));
  
     return _newValue(inst);
@@ -206,7 +206,7 @@ class Environment {
       val = values[val];
     
     if(val is ClassScope){
-      return new TypeNode(new Identifier(val.clazz.name));
+      return new TypeNode(new Identifier.fixed(val.clazz.name));
     }
     else if(val is PrimitiveValue){
       return new TypeNode(val.type);
@@ -470,6 +470,7 @@ abstract class Scope {
 abstract class ClassScope extends Scope {
   List<BlockScope> _methodStack = new List<BlockScope>();
   
+  Identifier get name;
   List<MethodDecl> get methodDeclarations;
   Map<Identifier, ReferenceValue> get _namespaceClasses;
   ReferenceValue get package;
@@ -493,7 +494,7 @@ abstract class ClassScope extends Scope {
     MethodDecl method = methods.singleMatching((m) => m.name == name.name && _checkParamArgTypeMatch(m.type.parameters, argTypes));
     _methodStack.addLast(new BlockScope(method.body));
     for(int i = 0; i < method.parameters.length; i++){
-      newVariable(new Identifier(method.parameters[i].name), args[i]);
+      newVariable(new Identifier.fixed(method.parameters[i].name), args[i]);
     }
   }
   
@@ -516,10 +517,12 @@ abstract class ClassScope extends Scope {
   }
   
   bool assign(Identifier name, Value value){
-    if(!_methodStack.isEmpty)
-      return _methodStack.last.assign(name, value);
-    else
-      return super._assign(name, value);
+    //check if variable exists in inner scope
+    if(!_methodStack.isEmpty && _methodStack.last.assign(name, value))
+      return true;
+
+    //if not, attempt to assign to this scope
+    return super._assign(name, value);
   }
   
   Value lookupVariable(Identifier name){
@@ -630,7 +633,7 @@ class StaticClass extends ClassScope {
   final ReferenceValue package;
   List<MethodDecl> get methodDeclarations => _declaration.staticMethods;
   Map<Identifier, ReferenceValue> _namespaceClasses = new Map<Identifier, ReferenceValue>();
-  Identifier get name => new Identifier(_declaration.name);
+  Identifier get name => new Identifier.fixed(_declaration.name);
   
   StaticClass(ReferenceValue this.package, ClassDecl this._declaration, List<dynamic> statements) : super(statements);
   
@@ -643,9 +646,11 @@ class ClassInstance extends ClassScope {
   Map<Identifier, dynamic> get _namespaceClasses => _static._namespaceClasses; 
   List<MethodDecl> get methodDeclarations => new List<MethodDecl>()
       ..addAll(_static._declaration.staticMethods)..addAll(_static._declaration.instanceMethods);
+  Identifier get name => _static.name;
   
   ClassInstance(StaticClass this._static, List<dynamic> statements) : super(statements);
   
+  String toString() => "${_variables}";
 }
 
 class Package {
