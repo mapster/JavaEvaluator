@@ -84,7 +84,7 @@ class BinaryOp extends ASTNode {
 }
 
 class ClassDecl extends ASTNode {
-  String name;
+  final Identifier name;
   
   final List<Variable> instanceVariables;
   final List<Variable> staticVariables;
@@ -93,14 +93,14 @@ class ClassDecl extends ASTNode {
   final List<MethodDecl> constructors;
   final List<ASTNode> members;
   
-  ClassDecl.fromJson(Map json, List<ASTNode> members) : this.name = json['name'],this.members = members, 
+  ClassDecl.fromJson(Map json, List<ASTNode> members) : this.name = new Identifier(json['name']),this.members = members, 
                                       this.staticMethods = members.where((m) => m.isStatic() && m is MethodDecl).toList(),
                                       this.instanceMethods = members.where((m) => !m.isStatic() && m is MethodDecl).toList(),
                                       this.staticVariables = members.where((v) => v.isStatic() && v is Variable).toList(),
                                       this.instanceVariables = members.where((v) => !v.isStatic() && v is Variable).toList(),
                                       this.constructors = members.where((m) => m is MethodDecl && m.isConstructor).toList(),
                                       super.fromJson(json){
-    this.constructors.forEach((m) => m.publicName = name);
+    this.constructors.forEach((m) => m.publicName = name.name);
   }
 }
 

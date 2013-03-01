@@ -288,19 +288,11 @@ class Printer {
   static staticEnv(Environment env){
     DivElement root = new DivElement();
     root.classes.add("box");
-    root.children.add(packageToHtml(env.defaultPackage, env));
     root.children.addAll(env.packages.values.map((pkg) => packageToHtml(pkg, env)));
     return root;
   }
   
-  static containerToHtml(ReferenceValue ref, Environment env){
-    if(env.values[ref] is Package)
-      return packageToHtml(ref, env);
-    return staticClassToHtml(ref, env);
-  }
-
-  static packageToHtml(ReferenceValue pkgref, Environment env){
-    Package pkg = env.values[pkgref];
+  static packageToHtml(Package pkg, Environment env){
     DivElement pkgRoot = new DivElement();
     pkgRoot.classes.add("box");
     pkgRoot.attributes['class'] = "package";
@@ -313,14 +305,11 @@ class Printer {
     
     DivElement members = new DivElement();
     members.attributes['class'] = "members";
-    members.children = pkg._members.values.map((ref) => containerToHtml(ref, env)).toList();
+    members.children = pkg._memberPackages.values.map((Package p) => packageToHtml(p, env)).toList();
+    members.children.addAll(pkg._memberClasses.values.map((StaticClass c) => classToHtml(c, env)).toList());
 
     pkgRoot.children..add(name)..add(members);
     return pkgRoot;
-  }
-  
-  static staticClassToHtml(ReferenceValue ref, Environment env){
-    return classToHtml(env.values[ref], env); 
   }
   
   static classToHtml(ClassScope clazz, Environment env){

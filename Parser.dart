@@ -9,6 +9,7 @@ part 'Runner.dart';
 part 'printer.dart';
 part 'environment.dart';
 part 'types.dart';
+part 'classloader.dart';
 
 class Program {
   final List<CompilationUnit> compilationUnits;
@@ -103,7 +104,7 @@ class Program {
    List<ClassDecl> mains = typeDeclarations.where((ClassDecl clazz) =>
        clazz.staticMethods.any((MethodDecl m) => m.name == "main" && m.type == MethodType.main)).toList();
    mains.forEach((ClassDecl clazz) {
-     mainSelectors.add(new MemberSelect.mainMethod(new MemberSelect(new Identifier(clazz.name), package)));
+     mainSelectors.add(new MemberSelect.mainMethod(new MemberSelect(clazz.name, package)));
    });
     
     

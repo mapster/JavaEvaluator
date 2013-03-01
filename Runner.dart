@@ -19,7 +19,8 @@ class Runner {
   
   Runner(this.program) {
     environment = new Environment(this);
-    program.compilationUnits.forEach((unit) => loadUnit(unit));
+    ClassLoader loader = new ClassLoader(environment, this);
+    program.compilationUnits.forEach((unit) => loader.loadUnit(unit));
     //perform static loading
     while(!isDone())
       step();
@@ -27,94 +28,12 @@ class Runner {
     MemberSelect main = program.mainSelectors.last;
     if(main != null){
       print("main selector: ${main}");
-      ReferenceValue inContainer;
-      if(main.owner is MemberSelect)
-        inContainer = environment.memberSelectContainer(main.owner);
-      else inContainer = environment.lookupContainer(main.owner);
-      
+  
+      StaticClass clazz = environment.lookupClass(main.owner);
       environment.loadMethod(main.member_id, 
           [environment.newArray(0, null, const TypeNode.fixed(TypeNode.STRING))], 
-          inContainer:inContainer);
+          inClass:clazz);
     }
-  }
-  
-  List<ReferenceValue> loadUnit(CompilationUnit unit){
-    print("loading unit...");
-    ReferenceValue pkg = getOrCreatePackage(unit.package);
-    
-    //evaluate imports
-    List<ReferenceValue> imports = unit.imports.map((sel){
-      //get enclosing pkg
-      ReferenceValue enclosing = getOrCreatePackage(sel.owner);
-      ReferenceValue import = enclosing; //default to entire package (star imports)
-      if(sel.member_id.name != "*"){
-        //lookup in enclosing, if not star import
-        environment.values[enclosing].lookupContainer(sel.member_id);
-      }
-      if(import == null)
-        import = environment._newValue(null); //if not found, add a memory location for it
-      return import;
-    }).toList();
-    
-    //Create all the static scopes, add imports, and add them to associated packages
-    List<ReferenceValue> staticScopes = unit.typeDeclarations.map((ClassDecl decl){
-      print("loading class: ${decl.name}");
-      List<EvalTree> initializers = new List<EvalTree>();
-      StaticClass clazz = new StaticClass(pkg, decl, initializers);
-      //declare static variables, and transform initializers into assignments
-      decl.staticVariables.forEach((Variable v){
-        Identifier id = new Identifier.fixed(v.name);
-        clazz.newVariable(id);
-        if(v.initializer != null)
-          initializers.add(new EvalTree(v, this, (List args) => environment.assign(id, args.first),[v.initializer]));
-      });
-      
-      //check if previously declared
-      ReferenceValue ref = environment.lookupContainer(new Identifier.fixed(decl.name), inContainer:pkg);
-      if(ref != null){
-        //memory has already been allocated for class (due to import in another class. Store it at that location
-        environment.values[ref] = clazz;
-      }
-      else {
-        ref = environment._newValue(clazz);
-      }
-      environment.values[pkg].addMember(new Identifier.fixed(decl.name), ref);
-      
-      //add imports
-      imports.forEach((ref) {
-        clazz._namespaceClasses[environment.values[ref].name] = ref;
-      });
-      environment.loadEnv(ref);
-      return ref;
-    }).toList();
-    return staticScopes;
-  }
-  
-  ReferenceValue getOrCreatePackage(select){
-    if(select is Identifier){
-      //check if default package
-      if(select == Identifier.DEFAULT_PACKAGE){
-        print("returning default package");
-        return environment.defaultPackage;
-      }
-      //Base case, get existing or create new root package
-      ReferenceValue ref = environment.packages[select];
-      if(ref == null){
-        ref = environment._newValue(new Package(select));
-        environment.packages[select] = ref;
-      }
-      return ref;
-    }
-    else if(select is MemberSelect){
-      ReferenceValue owner = getOrCreatePackage(select.owner);
-      ReferenceValue ref = environment.values[owner].lookupContainer(select.member_id);
-      if(ref == null){
-        ref = environment._newValue(new Package(select.member_id));
-        environment.values[owner].addMember(select.member_id, ref);
-      }
-      return ref;
-    }
-    else throw "Can't get or create package using object of type ${select.runtimeType}";
   }
     
   void step(){
@@ -201,15 +120,18 @@ class Runner {
       var value = null;
       if(type.isPrimitive)
         value = TypeNode.DEFAULT_VALUES[type.type];
+      else
+        throw "Don't support object arrays yet!";
       
       return _newArray(args.map((arg) => arg.value).toList(), value, 
           newArray.dimensions.reduce(type, (TypeNode r, e) => new TypeNode(r)));
+      
     }, newArray.dimensions.toList());
   }
   
   _evalNewObject(NewObject newObject){
     return new EvalTree(newObject, this, (List args){
-      ReferenceValue ref = environment.newObject(environment.lookupContainer(newObject.name), args);
+      ReferenceValue ref = environment.newObject(environment.lookupClass(newObject.name), args);
       environment.loadEnv(ref);
       return ref;
     }, newObject.arguments).execute();
@@ -285,7 +207,7 @@ class Runner {
   
   _evalMemberSelect(MemberSelect select){
     return new EvalTree(select, this, (List args){
-      return environment.lookupIn(select.member_id, args[0]);
+      return environment.lookupVariable(select.member_id, parent:args[0]);
     }, [select.owner]).execute();
   }
 

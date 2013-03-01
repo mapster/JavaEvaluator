@@ -5,12 +5,12 @@ class Environment {
   int _counter = 1;
   final Map<ReferenceValue, dynamic> values = new Map<ReferenceValue, dynamic>();
   final List<ClassScope> instanceStack = new List<ClassScope>();
-  final ReferenceValue defaultPackage = new ReferenceValue(0);
-  final Map<Identifier, ReferenceValue> packages = new Map<Identifier, ReferenceValue>();
+  Package get defaultPackage => packages[Identifier.DEFAULT_PACKAGE]; 
+  final Map<Identifier, Package> packages = new Map<Identifier, Package>();
   Scope get currentScope => instanceStack.last.currentScope;
   
   Environment(this._runner){
-    values[defaultPackage] = new Package(const Identifier.fixed(""));
+    packages[Identifier.DEFAULT_PACKAGE] = new Package(Identifier.DEFAULT_PACKAGE);
   }
   
   void addBlock(List statements) => instanceStack.last.addBlock(new BlockScope(statements));
@@ -45,56 +45,61 @@ class Environment {
     return values[array][index];
   }
   
-  Value lookupVariable(Identifier name){
+  Value lookupVariable(Identifier name, {parent}){
     //Check in current class instance for the variable (both static and instance)
-    print("Lookin up: $name");
+    if(?parent){
+      print("Looking up: $name in ${parent}");
+      if(parent is ReferenceValue)
+        return values[parent].lookupVariable(name);
+      else
+        throw "Can't lookup $name in a parent of type ${parent.runtimeType}";
+    }
+    
+    print("Looking up: $name");
     return  instanceStack.last.lookupVariable(name);
   }
   
-  Value lookupIn(Identifier name, ReferenceValue envRef){
-    return values[envRef].lookupVariable(name);
+  StaticClass lookupClass(select){
+    print("Looking up class: $select");
+    StaticClass clazz = instanceStack.last.lookupClass(select);
+    if(clazz != null)
+      return clazz;
+    
+    if(select is MemberSelect){
+      List<Identifier> selectTree = new List<Identifier>();
+      while(select is MemberSelect){
+        selectTree.add(select.member_id);
+        select = select.owner;
+      }
+
+      Package root = packages[select as Identifier];
+      //must exist a root package
+      if(root == null)
+        throw "Unable to find package '$select'!";
+      
+      //climb the package tree untill a class is found
+      while(!selectTree.isEmpty && root != null){
+        Identifier name = selectTree.removeLast();
+        Package pkg = root.lookupPackage(name);
+        if(pkg == null)
+          clazz = root.lookupClass(name);
+      }
+      
+      //then climb for subclasses, as a class cannot have child packages
+      while(!selectTree.isEmpty){
+        clazz = clazz.lookupClass(selectTree.removeLast());
+      }
+      
+      if(clazz == null)
+        throw "No class found!";
+      
+      return clazz;
+    }
+    
+    throw "Unable to lookup clazz!";
   }
   
-  ReferenceValue lookupContainer(Identifier name, {ReferenceValue inContainer}){
-    print("looking up container: $name");
-    var found = null;
-    if(?inContainer){
-      //lookup in specified container, must exist!
-      found = values[inContainer].lookupContainer(name);
-    }
-    else if(name == Identifier.DEFAULT_PACKAGE){
-      return defaultPackage;
-    }
-    else if(!instanceStack.isEmpty){
-      //lookup in current namespace
-      found = instanceStack.last.lookupContainer(name);
-      //check classes in package
-      if(found == null)
-        found = values[instanceStack.last.package].lookupContainer(name);
-    }
-    
-    if(found != null){
-      print("found: $found");
-      return found;
-    }
-    
-    //check if package
-    return packages[name];
-  }
-  
-  ReferenceValue memberSelectContainer(MemberSelect select){
-    ReferenceValue inCont;
-    if(select.owner is MemberSelect)
-      inCont = memberSelectContainer(select.owner);
-    else
-      inCont = lookupContainer(select.owner);
-    
-    return lookupContainer(select.member_id, inContainer:inCont);
-  }
-  
-  ReferenceValue newObject(ReferenceValue staticRef, List<Value> constructorArgs){
-    StaticClass clazz = values[staticRef];
-    
+  ReferenceValue newObject(StaticClass clazz, List<Value> constructorArgs){
     List<EvalTree> initializers = new List<EvalTree>();
     ClassInstance inst = new ClassInstance(clazz, initializers);
     //declare all variables and create assignments of the initializers
@@ -123,9 +128,9 @@ class Environment {
     return addr;
   }
 
-  void loadMethod(Identifier name, List args, {ReferenceValue inContainer}) {
-    if(?inContainer)
-      loadEnv(inContainer);
+  void loadMethod(Identifier name, List args, {StaticClass inClass}) {
+    if(?inClass)
+      loadClassScope(inClass);
     
     instanceStack.last.loadMethod(name, args, args.map(typeOf).toList());
   }
@@ -138,6 +143,10 @@ class Environment {
     print("loading environment $env => ${values[env]} ");
     instanceStack.addLast(values[env]);
     return true;
+  }
+  
+  void loadClassScope(StaticClass clazz){
+    instanceStack.addLast(clazz);
   }
   
   void unloadEnv(){
@@ -222,8 +231,9 @@ abstract class ClassScope extends Scope {
   
   Identifier get name;
   List<MethodDecl> get methodDeclarations;
-  Map<Identifier, ReferenceValue> get _namespaceClasses;
-  ReferenceValue get package;
+  Map<Identifier, ClassScope> get _importedClasses;
+  Map<Identifier, Package> get _importedPackages;
+  Package get package;
   bool  get isDone {
     if(_methodStack.any((sc) => !sc.isDone))
         return false;
@@ -285,9 +295,47 @@ abstract class ClassScope extends Scope {
     return super._lookupVariable(name);
   }
   
-  ReferenceValue lookupContainer(Identifier name){
-    print("namespace classes: ${_namespaceClasses.keys.reduce("", (r, c) => "$r, $c")}");
-    return _namespaceClasses[name];
+  ClassScope lookupClass(select){
+    //climb memberselect tree and add selectors in stack
+    List<Identifier> selectStack = new List<Identifier>();
+    if(select is MemberSelect){
+      while(select is MemberSelect){
+        selectStack.add(select.member_id);
+        select = select.owner;
+      }
+    }
+    
+    //root, $select, of memberselect tree must be a class available through imports or in same package
+    //if select is identifier, we now that is must be a class available either as an imported class or in the package
+    StaticClass clazz;
+    if(select is Identifier){
+      clazz = package.lookupClass(select);
+      
+      if(clazz == null) //not in same package, look in imported classes
+        clazz = _importedClasses[name];
+      
+      if(clazz == null){  //also not an imported class, check star imports
+        //iterate over packages and check if it has class.
+        _importedPackages.values.forEach((Package pkg){ 
+          StaticClass tmp = pkg.lookupClass(name);
+          if(tmp != null)
+            clazz = tmp;
+        });  
+      }
+    }
+
+    //if null then no class can be found in imports or package, both when original select is identifier and memberselect
+    if(clazz == null)
+      return null;
+    
+    //look through the memberselect tree.
+    while(!selectStack.isEmpty){
+      clazz = clazz.lookupClass(selectStack.removeLast());
+      if(clazz == null)//should not occur!
+        throw "Error looking up class!!";
+    }
+    
+    return clazz;
   }
   
   dynamic popStatement(){
@@ -378,22 +426,35 @@ class BlockScope extends Scope {
 }
 
 class StaticClass extends ClassScope {
-  final ClassDecl _declaration;
-  final Map<Identifier, ReferenceValue> _localClasses = new Map<Identifier, ReferenceValue>();
-  final ReferenceValue package;
+  ClassDecl _declaration;
+//  final Map<Identifier, ReferenceValue> _localClasses = new Map<Identifier, ReferenceValue>();
+  Package _package;
   List<MethodDecl> get methodDeclarations => _declaration.staticMethods;
-  Map<Identifier, ReferenceValue> _namespaceClasses = new Map<Identifier, ReferenceValue>();
-  Identifier get name => new Identifier.fixed(_declaration.name);
+  Map<Identifier, StaticClass> _importedClasses = new Map<Identifier, StaticClass>();
+  Map<Identifier, Package> _importedPackages = new Map<Identifier, Package>();
+  Identifier get name => _declaration.name;
+  Package get package => _package;
   
-  StaticClass(ReferenceValue this.package, ClassDecl this._declaration, List<dynamic> statements) : super(statements);
+  StaticClass(Package this._package, ClassDecl this._declaration, List<dynamic> statements) : super(statements);
+  StaticClass.empty() : super(new List());
   
   String toString() => name.toString();
+  
+  void addImport(dynamic import) {
+    if(import is StaticClass)
+      _importedClasses[import.name] = import;
+    else if(import is Package)
+      _importedPackages[import.name] = import;
+    else
+      throw "Can't add object of type ${import.runtimeType} as import to class $name";
+  }
 }
 
 class ClassInstance extends ClassScope {
   final StaticClass _static;
-  ReferenceValue get package => _static.package;
-  Map<Identifier, dynamic> get _namespaceClasses => _static._namespaceClasses; 
+  Package get package => _static.package;
+  Map<Identifier, StaticClass> get _importedClasses => _static._importedClasses;
+  Map<Identifier, Package> get _importedPackages => _static._importedPackages;
   List<MethodDecl> get methodDeclarations => new List<MethodDecl>()
       ..addAll(_static._declaration.staticMethods)..addAll(_static._declaration.instanceMethods);
   Identifier get name => _static.name;
@@ -405,14 +466,31 @@ class ClassInstance extends ClassScope {
 
 class Package {
   final Identifier name;
-  final Map<Identifier, ReferenceValue> _members = new Map<Identifier, ReferenceValue>();
+  final Map<Identifier, Package> _memberPackages = new Map<Identifier, Package>();
+  final Map<Identifier, StaticClass> _memberClasses = new Map<Identifier, StaticClass>();
   
   Package(this.name);
   
-  void addMember(Identifier name, ReferenceValue pkgRef) {
-    print("$name: adding member -> $name");
-    _members[name] = pkgRef; 
+  void addClass(StaticClass clazz) {
+    if(_memberPackages.containsKey(clazz.name))
+      throw "Can't add member class to the package ${this.name}, already a child package with the name ${clazz.name}.";
+    if(_memberClasses.containsKey(clazz.name))
+      throw "There already exist a member class with the name ${clazz.name} in the package ${this.name}";
+    
+    print("package ${this.name}: adding member class -> ${clazz.name}");
+    _memberClasses[clazz.name] = clazz; 
   }
   
-  ReferenceValue lookupContainer(Identifier name) => _members[name];
+  void addPackage(Package package) {
+    if(_memberClasses.containsKey(package.name))
+      throw "Can't add member package to the package ${this.name}, already a child class with the name ${package.name}.";
+    if(_memberPackages.containsKey(package.name))
+      throw "There already exist a member package with the name ${package.name} in the package ${this.name}";
+    
+    print("package ${this.name}: adding member package -> ${package.name}");
+    _memberPackages[package.name] = package; 
+  } 
+  
+  StaticClass lookupClass(Identifier name) => _memberClasses[name];
+  Package lookupPackage(Identifier name) => _memberPackages[name];
 }
