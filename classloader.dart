@@ -2,11 +2,11 @@ part of JavaEvaluator;
 
 class ClassLoader {
   final Environment environment;
-  final Runner runner;
+  final Evaluator evaluator;
   
-  ClassLoader(this.environment, this.runner);
+  ClassLoader(this.environment, this.evaluator);
   
-  List<ReferenceValue> loadUnit(CompilationUnit unit){
+  void loadUnit(CompilationUnit unit){
     print("loading unit...");
     Package pkg = getPackage(unit.package);
     
@@ -30,38 +30,40 @@ class ClassLoader {
     }).toList();
     
     //Load all the classes and create static instances, add imports, and add them to associated packages
-    unit.typeDeclarations.forEach((ClassDecl decl){
-      print("loading class: ${decl.name}");
-      List<EvalTree> initializers = new List<EvalTree>();
-      
-      //check if class already exists (due to import in some other class)
-      StaticClass clazz = pkg.lookupClass(decl.name);
-      //if it exists, setup correct contents
-      if(clazz != null){
-        clazz._declaration = decl;
-        clazz._package = pkg;
-        initializers = clazz._statements;
-      }
-      //if it didn't, create it and add it to its parent package
-      else {
-        clazz = new StaticClass(pkg, decl, initializers);
-        pkg.addClass(clazz);
-      }
-      
-      //declare static variables, and transform initializers into assignments
-      decl.staticVariables.forEach((Variable v){
-        Identifier id = new Identifier.fixed(v.name);
-        clazz.newVariable(id);
-        if(v.initializer != null)
-          initializers.add(new EvalTree(v, this.runner, (List args) => environment.assign(id, args.first),[v.initializer]));
-      });
-      
-      //add imports
-      imports.forEach((import) => clazz.addImport(import));
-      
-      //add class to evaluation stack, to evaluate initializers of static variables
-      environment.loadClassScope(clazz);
+    unit.typeDeclarations.forEach((decl) => loadClass(decl, pkg, imports));
+  }
+  
+  void loadClass(ClassDecl decl, Package package, List imports){
+    print("loading class: ${decl.name}");
+    List<EvalTree> initializers = new List<EvalTree>();
+    
+    //check if class already exists (due to import in some other class)
+    StaticClass clazz = package.lookupClass(decl.name);
+    //if it exists, setup correct contents
+    if(clazz != null){
+      clazz._declaration = decl;
+      clazz._package = package;
+      initializers = clazz._statements;
+    }
+    //if it didn't, create it and add it to its parent package
+    else {
+      clazz = new StaticClass(package, decl, initializers);
+      package.addClass(clazz);
+    }
+    
+    //declare static variables, and transform initializers into assignments
+    decl.staticVariables.forEach((Variable v){
+      Identifier id = new Identifier.fixed(v.name);
+      clazz.newVariable(id);
+      if(v.initializer != null)
+        initializers.add(new EvalTree(v, this.evaluator, (List args) => environment.assign(id, args.first),[v.initializer]));
     });
+    
+    //add imports
+    imports.forEach((import) => clazz.addImport(import));
+    
+    //add class to evaluation stack, to evaluate initializers of static variables
+    environment.loadClassScope(clazz);
   }
   
   Package getPackage(select){

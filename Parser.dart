@@ -10,6 +10,7 @@ part 'printer.dart';
 part 'environment.dart';
 part 'types.dart';
 part 'classloader.dart';
+part 'evaluator.dart';
 
 class Program {
   final List<CompilationUnit> compilationUnits;

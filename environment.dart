@@ -1,7 +1,7 @@
 part of JavaEvaluator;
 
 class Environment {
-  final Runner _runner;
+  Evaluator _evaluator;
   int _counter = 1;
   final Map<ReferenceValue, dynamic> values = new Map<ReferenceValue, dynamic>();
   final List<ClassScope> instanceStack = new List<ClassScope>();
@@ -9,8 +9,9 @@ class Environment {
   final Map<Identifier, Package> packages = new Map<Identifier, Package>();
   Scope get currentScope => instanceStack.last.currentScope;
   
-  Environment(this._runner){
+  Environment(){
     packages[Identifier.DEFAULT_PACKAGE] = new Package(Identifier.DEFAULT_PACKAGE);
+    _evaluator = new Evaluator(this);
   }
   
   void addBlock(List statements) => instanceStack.last.addBlock(new BlockScope(statements));
@@ -96,7 +97,7 @@ class Environment {
       return clazz;
     }
     
-    throw "Unable to lookup clazz!";
+    throw "Unable to lookup class!";
   }
   
   ReferenceValue newObject(StaticClass clazz, List<Value> constructorArgs){
@@ -107,11 +108,11 @@ class Environment {
       Identifier id = new Identifier.fixed(v.name);
       inst.newVariable(id);
       if(v.initializer != null)
-        initializers.add(new EvalTree(v, _runner, (List args) => assign(id, args.first), [v.initializer]));
+        initializers.add(new EvalTree(v, _evaluator, (List args) => assign(id, args.first), [v.initializer]));
     });
     
     //add method call to constructor
-    initializers.add(new EvalTree(null, _runner, (List args){
+    initializers.add(new EvalTree(null, _evaluator, (List args){
       loadMethod(Identifier.CONSTRUCTOR, constructorArgs);
     }, []));
  
