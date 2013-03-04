@@ -30,7 +30,7 @@ class Evaluator {
     else if(statement is Identifier){
       //no further evaluation, setting current
       current = statement;
-      return environment.lookupVariable(statement);
+      return environment.lookup(statement);
     }
     else if(statement is String)
       return statement;
@@ -84,11 +84,8 @@ class Evaluator {
   }
   
   _evalNewObject(NewObject newObject){
-    return new EvalTree(newObject, this, (List args){
-      ReferenceValue ref = environment.newObject(environment.lookupClass(newObject.name), args);
-      environment.loadEnv(ref);
-      return ref;
-    }, newObject.arguments).execute();
+    return new EvalTree(newObject, this, (List args) => environment.newObject(environment.lookupClass(newObject.name), args),
+                        newObject.arguments).execute();
   }
 
   _evalMethodCall(MethodCall call) {
@@ -145,24 +142,15 @@ class Evaluator {
       ArrayAccess arr = assign.id;
       return new EvalTree(assign, this, (List args) => environment.arrayAssign(args[0], args[1].value, args[2]), [arr.expr, arr.index, assign.expr]).execute();
     }
-    else if(assign.id is Identifier)
-      return new EvalTree(assign, this, (List args) => environment.assign(assign.id, args.first),[assign.expr]).execute();
-    else if(assign.id is MemberSelect){
-      MemberSelect select = assign.id;
-      return new EvalTree(assign, this, (List args){
-        environment.loadEnv(args[1]);
-        environment.assign(select.member_id, args[0]);
-        environment.unloadEnv();
-      }, [assign.expr, select.owner]).execute();
-    }
-    else
-      throw "Don't know how to assign to ${assign.id.runtimeType}: ${assign.id.toString()}";
+    
+    assert(assign.id is Identifier || assign.id is MemberSelect);
+    return new EvalTree(assign, this, (List args) => environment.assign(assign.id, args.first),[assign.expr]).execute();
   }
   
   _evalMemberSelect(MemberSelect select){
     return new EvalTree(select, this, (List args){
-      return environment.lookupVariable(select.member_id, parent:args[0]);
-    }, [select.owner]).execute();
+      return environment.lookup(select);
+    }, []).execute();
   }
 
   _evalVariable(Variable variable) {

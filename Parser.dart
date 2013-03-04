@@ -7,10 +7,10 @@ import 'dart:core';
 part 'Nodes.dart';
 part 'Runner.dart';
 part 'printer.dart';
-part 'environment.dart';
 part 'types.dart';
 part 'classloader.dart';
 part 'evaluator.dart';
+part 'environment.dart';
 
 class Program {
   final List<CompilationUnit> compilationUnits;

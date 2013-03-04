@@ -305,8 +305,8 @@ class Printer {
     
     DivElement members = new DivElement();
     members.attributes['class'] = "members";
-    members.children = pkg._memberPackages.values.map((Package p) => packageToHtml(p, env)).toList();
-    members.children.addAll(pkg._memberClasses.values.map((StaticClass c) => classToHtml(c, env)).toList());
+    members.children = pkg.getPackages.map((Package p) => packageToHtml(p, env)).toList();
+    members.children.addAll(pkg.getClasses.map((StaticClass c) => classToHtml(c, env)).toList());
 
     pkgRoot.children..add(name)..add(members);
     return pkgRoot;

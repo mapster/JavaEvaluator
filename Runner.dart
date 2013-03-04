@@ -34,10 +34,10 @@ class Runner {
   void step(){
     var toEval = environment.popStatement();
       
-    Scope currentScope = environment.currentScope;
+    BlockScope currentBlock = environment.currentBlock;
     var result = environment._evaluator.eval(toEval);
     if(result is EvalTree){
-      currentScope.pushStatement(result);
+      currentBlock.pushStatement(result);
     }
     if(current != null){
       print("step: ${current} - id: ${current.nodeId}");

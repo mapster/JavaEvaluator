@@ -183,6 +183,8 @@ class MemberSelect extends ASTNode {
   final Identifier member_id;
   final ASTNode owner;
   
+  Identifier get getRoot => owner is MemberSelect ? (owner as MemberSelect).getRoot : owner; 
+  
 //  MemberSelect(final member_id, this.owner, [int startPos, int endPos]) : this.member_id = new Identifier(member_id), super(startPos, endPos);
   MemberSelect.fromJson(Map json, this.owner) : this.member_id = new Identifier(json['member_id']), super.fromJson(json);
   const MemberSelect.mainMethod(this.owner) : member_id = const Identifier.fixed("main"), super.fixed();
@@ -210,11 +212,12 @@ class MethodDecl extends ASTNode {
   String _publicName;
   final MethodType type;
   final List<Variable> parameters;
-  final List body;
+  final List _body;
+  List get body => _body.toList();
   
-  MethodDecl(this._name, TypeNode returnType, List<Variable> parameters, this.body, [int startPos, int endPos]) : this.type = new MethodType(returnType, parameters.map((v) => v.type).toList()), 
+  MethodDecl(this._name, TypeNode returnType, List<Variable> parameters, this._body, [int startPos, int endPos]) : this.type = new MethodType(returnType, parameters.map((v) => v.type).toList()), 
                                                                                                             this.parameters = parameters, super(startPos:startPos, endPos:endPos);
-  MethodDecl.fromJson(Map json, TypeNode returnType, parameters, this.body) : this._name = json['name'], this.type = new MethodType(returnType, parameters.map((v) => v.type).toList()), this.parameters = parameters, super.fromJson(json); 
+  MethodDecl.fromJson(Map json, TypeNode returnType, parameters, this._body) : this._name = json['name'], this.type = new MethodType(returnType, parameters.map((v) => v.type).toList()), this.parameters = parameters, super.fromJson(json); 
   
   bool get isConstructor => !isStatic() && _name == CONSTRUCTOR_NAME;
   String get name => _name;

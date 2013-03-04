@@ -19,11 +19,11 @@ class ClassLoader {
       }
 
       //lookup in parent package
-      StaticClass import = importParent.lookupClass(sel.member_id);
+      StaticClass import = importParent.getClass(sel.member_id);
       if(import == null){
         //if not found, add it
         import = new StaticClass.empty(); 
-        importParent.addClass(import);
+        importParent.addMember(import);
       }
         
       return import;
@@ -38,17 +38,16 @@ class ClassLoader {
     List<EvalTree> initializers = new List<EvalTree>();
     
     //check if class already exists (due to import in some other class)
-    StaticClass clazz = package.lookupClass(decl.name);
+    StaticClass clazz = package.getClass(decl.name);
     //if it exists, setup correct contents
     if(clazz != null){
       clazz._declaration = decl;
       clazz._package = package;
-      initializers = clazz._statements;
     }
     //if it didn't, create it and add it to its parent package
     else {
-      clazz = new StaticClass(package, decl, initializers);
-      package.addClass(clazz);
+      clazz = new StaticClass(decl, package);
+      package.addMember(clazz);
     }
     
     //declare static variables, and transform initializers into assignments
@@ -63,15 +62,16 @@ class ClassLoader {
     imports.forEach((import) => clazz.addImport(import));
     
     //add class to evaluation stack, to evaluate initializers of static variables
-    environment.loadClassScope(clazz);
+    MethodScope classInit = new MethodScope(initializers, clazz);
+    environment.loadScope(classInit);
   }
   
   Package getPackage(select){
     if(select is Identifier){
-      //check if default package
-      if(select == Identifier.DEFAULT_PACKAGE){
-        return environment.defaultPackage;
-      }
+//      //check if default package
+//      if(select == Identifier.DEFAULT_PACKAGE){
+//        return environment.defaultPackage;
+//      }
       //Base case, get existing or create new root package
       Package pkg = environment.packages[select];
       if(pkg == null){
@@ -82,11 +82,11 @@ class ClassLoader {
     }
     else if(select is MemberSelect){
       Package parent = getPackage(select.owner); //recursively fetch parent package
-      Package current = parent.lookupPackage(select.member_id); //fetch current package
+      Package current = parent.getPackage(select.member_id); //fetch current package
       //if it doesn't exist, create it
       if(current == null){
          current = new Package(select.member_id);
-         parent.addPackage(current);
+         parent.addMember(current);
       }
       return current;
     }
