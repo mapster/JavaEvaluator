@@ -337,9 +337,8 @@ class Printer {
   }
   
   static currentScopeToHtml(Environment env){
-    DivElement clazz = classToHtml(env.instanceStack.last, env);
-    if(!env.instanceStack.last._methodStack.isEmpty)
-      clazz.children.add(blockToHtml(env.instanceStack.last._methodStack.last, env));
+    DivElement clazz = classToHtml(env.methodStack.last.parentScope, env);
+     clazz.children.add(blockToHtml(env.methodStack.last, env));
     return clazz;
   }
   
@@ -348,8 +347,8 @@ class Printer {
     root.classes.addAll(["box", "block"]);
     
     root.children.add(variableMapToHtml(block._variables));
-    if(block._subBlock != null)
-      root.children.add(blockToHtml(block._subBlock, env));
+    if(block.subScope != null)
+      root.children.add(blockToHtml(block.subScope, env));
     
     return root;
   }

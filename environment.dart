@@ -27,6 +27,11 @@ class Environment {
     }
     else name = select;
 
+    //lookup of class should only be allowed if parent is Package
+    if(parent is Package){
+      return parent.getMember(name);
+    }
+    
     //check if it is a variable, this must be the first lookup, since it trumps every other 
     Value val = parent.lookup(name);
     if(val != null)
@@ -44,13 +49,7 @@ class Environment {
         return packages[select];
     }
     
-    //lookup of class should only be allowed if parent is Package or StaticClass
-    assert(parent is Package || parent is StaticClass);
-    
-    if(parent is Package){
-      return parent.getMember(name);
-    }
-    else if(parent is StaticClass){
+    if(parent is StaticClass){
       throw "Don't support lookup in inner classes yet!";
     }
     
@@ -58,6 +57,7 @@ class Environment {
   }
   
   Value lookup(name){
+    print("Looking up: $name");
     if(name is Identifier)
       return methodStack.last.lookup(name);
     
@@ -99,12 +99,18 @@ class Environment {
   }
   
   void assign(final dynamic select, Value value){
+    print("assigning to: $select");
     if(select is Identifier){
       methodStack.last.assign(select, value);
     }
     else {
       assert(select is MemberSelect);
-      _lookup(select.owner).assign(select.member_id, value);
+      var clazz = _lookup(select.owner);
+      if(clazz is ReferenceValue)
+        clazz = values[clazz];
+      
+      assert(clazz is ClassScope);
+      clazz.assign(select.member_id, value);
     }
   }
   
@@ -172,13 +178,13 @@ class Environment {
     MethodDecl method = parent.methods.singleMatching((MethodDecl m) 
         => m.name == name.name && _checkParamArgTypeMatch(m.type.parameters, args.map(typeOf).toList()));
     
-    
     methodStack.add(new MethodScope(method.body, parent));
     
     for(int i = 0; i < method.parameters.length; i++){
       newVariable(new Identifier.fixed(method.parameters[i].name), args[i]);
     }
     
+    print("loading method: $name");
   }
   
   void methodReturn() { methodStack.removeLast(); }
@@ -189,7 +195,7 @@ class Environment {
       val = values[val];
     
     if(val is ClassScope){
-      return new TypeNode(new Identifier.fixed(val.clazz.name));
+      return new TypeNode(new Identifier.fixed(val.name.name));
     }
     else if(val is PrimitiveValue){
       return new TypeNode(val.type);
@@ -330,6 +336,8 @@ abstract class ClassScope extends Scope {
   StaticClass lookupClass(Identifier name);
   List<MethodDecl> get methods;
   Identifier get name;
+  
+  String toString() => "${_variables}";
 }
 
 class StaticClass extends ClassScope {
@@ -369,7 +377,12 @@ class StaticClass extends ClassScope {
     return package.getClass(name);
   }
   
-  Value lookup(Identifier name) => _lookup(name);
+  Value lookup(Identifier name){
+    print("Looking for $name => ${_lookup(name)} in ${this.name}.");
+    return _lookup(name);
+  }
+  
+//  => _lookup(name);
   
   void newVariable(Identifier name, [Value value]){
     _newVariable(name, value);
@@ -424,6 +437,6 @@ class Package {
   StaticClass getClass(Identifier name) => _members[name];
   Package getPackage(Identifier name) => _members[name];
   
-  List<Package> get getPackages => _members.values.where((m) => m is Package);
-  List<StaticClass> get getClasses => _members.values.where((c) => c is StaticClass);
+  List<Package> get getPackages => _members.values.where((m) => m is Package).toList();
+  List<StaticClass> get getClasses => _members.values.where((c) => c is StaticClass).toList();
 }

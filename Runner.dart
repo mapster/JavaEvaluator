@@ -10,7 +10,7 @@ class Runner {
 
   Runner(this.program) {
     environment = new Environment();
-    ClassLoader loader = new ClassLoader(environment, new ForgivingEvaluator(environment));
+    ClassLoader loader = new ClassLoader(environment, environment._evaluator);
     program.compilationUnits.forEach((unit) => loader.loadUnit(unit));
     //perform static loading
     while(!isDone())
@@ -33,7 +33,9 @@ class Runner {
     
   void step(){
     var toEval = environment.popStatement();
-      
+
+    environment._evaluator.returnValues;
+    print("preEvaluation: $current - id: ${current != null ? current.nodeId : "null"}");
     BlockScope currentBlock = environment.currentBlock;
     var result = environment._evaluator.eval(toEval);
     if(result is EvalTree){
@@ -41,8 +43,8 @@ class Runner {
     }
     if(current != null){
       print("step: ${current} - id: ${current.nodeId}");
-      print("");
     }
+    print("-----");
   }
 
 }

@@ -1,13 +1,18 @@
 part of JavaEvaluator;
 
-
 class Evaluator {
   final Environment environment;
   
-  final List<EvalTree> returnValues = new List<EvalTree>();
+  final List<EvalTree> _returnValues = new List<EvalTree>();
+  List<EvalTree> get returnValues {
+    print("returnStack: ${_returnValues.length}");
+    return _returnValues;
+  }
   ASTNode current;
 
-  Evaluator(this.environment);
+  Evaluator(this.environment){
+    print("Initializing evaluator");
+  }
   
   dynamic eval(statement){
     if(statement is EvalTree){
@@ -90,9 +95,9 @@ class Evaluator {
 
   _evalMethodCall(MethodCall call) {
     return new EvalTree(call, this, (List args){
-      environment.loadMethod(call.select, args);
       var toReturn = new EvalTree(call, this);
-      returnValues.addLast(toReturn);
+      returnValues.add(toReturn);
+      environment.loadMethod(call.select, args);
       return toReturn;
     }, new List.from(call.arguments)).execute();
   }
