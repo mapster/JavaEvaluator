@@ -171,7 +171,7 @@ class Printer {
     return ifThen;
   }
   
-  static List<Element> _literalToHtml(Literal node, bool newLine) => [_newElement(newLine:newLine, nodeid:node.nodeId, text:"${node}")];
+  static List<Element> _literalToHtml(Literal node, bool newLine) => [_newElement(newLine:newLine, keyword:(node.value is BooleanValue), nodeid:node.nodeId, text:"${node}")];
 
   static List<Element> _memberSelectToHtml(MemberSelect node, bool newLine){
     Element element = _newElement(nodeid:node.nodeId, newLine:newLine);

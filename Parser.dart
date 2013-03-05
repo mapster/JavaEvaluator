@@ -70,9 +70,26 @@ class Program {
 
   parseMethodCall(json) => new MethodCall.fromJson(json, parseObject(json['select']), json['arguments'].map(parseObject).toList());
 
-  parseIf(json) => new If.fromJson(json, parseObject(json['condition']), 
-                    json['then']['NODE_TYPE'] == 'block' ? json['then']['statements'].map(parseObject).toList() : [parseObject(json['then'])],
-                    json['else'] == null ? null : (json['else']['NODE_TYPE'] == 'block' ? json['else']['statements'].map(parseObject).toList() : [parseObject(json['then'])]));
+  parseIf(json){
+    List then;
+    Map thenJson = json['then'];
+    if(thenJson['NODE_TYPE'] == 'block')
+      then = thenJson['statements'].map(parseObject).toList();
+    else
+      then = [parseObject(thenJson)];
+    
+
+    List elze;
+    Map elzeJson = json['else'];
+    if( elzeJson != null){
+      if(elzeJson['NODE_TYPE'] == 'block')
+        elze = elzeJson['statements'].map(parseObject).toList();
+      else 
+        elze = [parseObject(elzeJson)];
+    }
+      
+    return new If.fromJson(json, parseObject(json['condition']), then, elze);
+  }
 
   parseLiteral(json) =>  new Literal.fromJson(json);
 

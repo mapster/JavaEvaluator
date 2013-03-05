@@ -187,6 +187,10 @@ class Environment {
     print("loading method: $name");
   }
   
+  void addBlockScope(List statements){
+    methodStack.last.addBlock(new BlockScope(statements));
+  }
+  
   void methodReturn() { methodStack.removeLast(); }
   void loadScope(MethodScope scope){ methodStack.add(scope); }
   
@@ -252,7 +256,14 @@ class BlockScope extends Scope {
   BlockScope subScope;
   BlockScope get currentBlock => subScope == null ? this : subScope.currentBlock; 
   
-  BlockScope(List<dynamic> this._statements);
+  BlockScope(List<dynamic> statements) : this._statements = statements.toList();
+  
+  void addBlock(BlockScope block){
+    if(subScope == null)
+      subScope = block;
+    else
+      subScope.addBlock(block);
+  }
   
   Value lookup(Identifier name){
     Value val;

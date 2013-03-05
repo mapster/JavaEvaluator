@@ -29,8 +29,8 @@ class StaticTest {
         return tall2;
     }
 
-/*    public static void main(String[] args){
-        System.out.println(mult);
+    public static void main(String[] args){
+ /*       System.out.println(mult);
         System.out.println(tall2);
         System.out.println(tall0);
         System.out.println(div);
@@ -38,8 +38,9 @@ class StaticTest {
         System.out.println(tall3);
         System.out.println(d1);
         System.out.println(tall4);
-    }
 */
+    }
+
 
 }
 

@@ -132,14 +132,16 @@ class Evaluator {
   }
 
   _evalIf(If ifStat){
-    throw "if wont work yet";
-//      return new EvalTree(ifStat, this, (List args){
-//        if(args[0])
-//          environment.addBlockScope(ifStat.then);
-//        else if(ifStat.elze != null){
-//          environment.addBlockScope(ifStat.elze);      
-//        }
-//      }, [ifStat.condition]).execute();
+      return new EvalTree(ifStat, this, (List args){
+        if(args[0] is! BooleanValue)
+          throw "If condition must evaluate to a Boolean value! (: ${args[0].runtimeType})";
+          
+        if(args[0].value)
+          environment.addBlockScope(ifStat.then);
+        else if(ifStat.elze != null){
+          environment.addBlockScope(ifStat.elze);      
+        }
+      }, [ifStat.condition]).execute();
   }
   
   _evalAssignment(Assignment assign){

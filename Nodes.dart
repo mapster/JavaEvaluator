@@ -172,7 +172,7 @@ class Literal extends ASTNode {
       case 'STRING_LITERAL':
         _value = json['value']; break;
       case 'BOOLEAN_LITERAL':
-        _value = json['value'] == 'true'; break;
+        _value = new BooleanValue(json['value'] == 'true'); break;
       default:
         throw "Literal type not supported yet: ${_type}";
     }

@@ -10,6 +10,8 @@ abstract class PrimitiveValue<T> extends Value<T> {
   String get type;
   
   const PrimitiveValue(value) : super(value);
+  
+  String toString() => "$value";
 }
 
 class ReferenceValue extends Value<int> {
@@ -26,12 +28,12 @@ class ReferenceValue extends Value<int> {
 }
 
 
-typedef NumberValue BinaryOperation(NumberValue first, NumberValue second);
+typedef PrimitiveValue BinaryOperation(NumberValue first, NumberValue second);
 
 abstract class NumberValue<T extends num> extends PrimitiveValue<T> {
   const NumberValue(T value) : super(value);
   
-  static NumberValue _executeOperation(NumberValue first, NumberValue second, BinaryOperation op){
+  static PrimitiveValue _executeOperation(NumberValue first, NumberValue second, BinaryOperation op){
     if(first.promotionCompare(second) < 0)
       first = second.promote(first);
     else if(second.promotionCompare(first) < 0)
@@ -48,12 +50,11 @@ abstract class NumberValue<T extends num> extends PrimitiveValue<T> {
   NumberValue operator-(NumberValue other) => _executeOperation(this, other, (NumberValue a, NumberValue b) => a.create(a.value - b.value));
   NumberValue operator*(NumberValue other) => _executeOperation(this, other, (NumberValue a, NumberValue b) => a.create(a.value * b.value));
   NumberValue operator/(NumberValue other) => _executeOperation(this, other, (NumberValue a, NumberValue b) => a.create(a.value / b.value));
+  BooleanValue operator>(NumberValue other) => _executeOperation(this, other, (NumberValue a, NumberValue b) => new BooleanValue(a.value > b.value));
 
   int promotionCompare(NumberValue other);
   NumberValue promote(NumberValue other);
   NumberValue create(num value);
-  
-  String toString() => "$value";
 }
 
 
@@ -173,4 +174,11 @@ class FloatValue extends NumberValue {
       throw "Promoting lesser type (${other.runtimeType}) to FloatValue"; 
     return new FloatValue(other.value.toDouble());
   }
+}
+
+class BooleanValue extends PrimitiveValue<bool> {
+  const BooleanValue(bool value) : super(value);
+  String get type => "boolean";
+  
+  static const BooleanValue defaultValue = const BooleanValue(false);
 }
