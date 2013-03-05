@@ -181,4 +181,7 @@ class BooleanValue extends PrimitiveValue<bool> {
   String get type => "boolean";
   
   static const BooleanValue defaultValue = const BooleanValue(false);
+  
+  BooleanValue and(BooleanValue other) => new BooleanValue(this._value && other.value);
+  BooleanValue or(BooleanValue other) => new BooleanValue(this._value || other.value);
 }

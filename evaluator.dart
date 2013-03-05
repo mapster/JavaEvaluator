@@ -124,6 +124,12 @@ class Evaluator {
       case BinaryOp.DIV:
         method = (List args) => args[0] / args[1];
         break;
+      case BinaryOp.AND:
+        method = (List args) => args[0].and(args[1]);
+        break;
+      case BinaryOp.OR:
+        method = (List args) => args[0].or(args[1]);
+        break;
       default:
         throw "Binary operator not supported yet: ${binary.type}";
     }

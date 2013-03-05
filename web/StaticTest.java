@@ -15,10 +15,12 @@ class StaticTest {
 
     static int funksjon2(int tall){
         tall2 = 1;
-        if(true)
+        if(true && false)
             return tall;
-        else
+        else if(true || false)
             return 1;
+        else
+            return -1;
     }
 
     static int fem(){

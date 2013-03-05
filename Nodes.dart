@@ -48,6 +48,8 @@ class BinaryOp extends ASTNode {
   static const String MINUS = "MINUS";
   static const String MULT = "MULTIPLY";
   static const String DIV = "DIVIDE";
+  static const String AND = "CONDITIONAL_AND";
+  static const String OR = "CONDITIONAL_OR";
   
   final String type;
   final left;
@@ -77,6 +79,10 @@ class BinaryOp extends ASTNode {
         return "*";
       case DIV:
         return "/";
+      case AND:
+        return "&&";
+      case OR:
+        return "||";
       default:
         throw "Operator toString not supported for: $op";
     }
