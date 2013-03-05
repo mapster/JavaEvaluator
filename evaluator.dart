@@ -9,6 +9,7 @@ class Evaluator {
     return _returnValues;
   }
   ASTNode current;
+  var lastValue;
 
   Evaluator(this.environment){
     print("Initializing evaluator");

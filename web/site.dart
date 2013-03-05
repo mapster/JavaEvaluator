@@ -8,6 +8,7 @@ import '../Parser.dart';
 String exampleSource = "class StaticTest { static int tall0; static int tall2 = 4; static int tall3 = funksjon(fem()); static int tall4 = funksjon3(fem(), funksjon2(fem()), 3); static int funksjon(int tall){ tall0 = tall; return funksjon2(9); }static int funksjon2(int tall){ tall2 = 1; return tall; } static int fem(){ return 5; } static int funksjon3(int tall, int tall2, int tall3){ return tall2;}}";
 String toJsonUrl = "/tojson";
 
+DivElement value = query("#lastvalue");
 DivElement java = query("#java");
 DivElement environment = query("#environment");
 TableElement memory = query("#memory");
@@ -80,19 +81,7 @@ postSourceToJsonService(String data){
 }
 
 void printEnv(){
-//  DivElement root = new DivElement();
-//  HeadingElement hValues = new HeadingElement.h3();
-//  hValues.text = "Values";
-//  DivElement values = new DivElement();
-//  values.children = runner.environment.values.keys.mappedBy((key){
-//    DivElement val = new DivElement();
-//    var v = runner.environment.values[key];
-//    val.text = "$key: ${runner.environment.typeOf(v)} => $v";
-//    return val;
-//  }).toList();
-//  root.children = [hValues, values];
-//
-//  environment.children = [root, Printer.scopeToHtml(runner.environment.currentScope)];
+  value.text = "${runner.lastValue != null ? runner.lastValue : "..."}";
   environment.children = [Printer.staticEnv(runner.environment), Printer.currentScopeToHtml(runner.environment)];
   
   memory.children = runner.environment.values.keys.map((key){

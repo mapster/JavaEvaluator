@@ -7,6 +7,7 @@ class Runner {
   final Program program;
 
   ASTNode get current => environment._evaluator.current;
+  dynamic get lastValue => environment._evaluator.lastValue;
 
   Runner(this.program) {
     environment = new Environment();
@@ -44,6 +45,7 @@ class Runner {
     if(current != null){
       print("step: ${current} - id: ${current.nodeId}");
     }
+    print("=> ${environment._evaluator.lastValue}");
     print("-----");
   }
 
@@ -63,6 +65,13 @@ class EvalTree extends ASTNode {
   
   dynamic execute(){
     //evaluate arguments
+    //
+    
+    //skip literals
+    while(!args.isEmpty && args.first is Literal){
+      evaledArgs.addLast(evaluator.eval(args.removeAt(0)));
+    }
+    
     if(!args.isEmpty){
       var evaledArg = evaluator.eval(args.first);
       if(evaledArg is EvalTree)
@@ -78,7 +87,9 @@ class EvalTree extends ASTNode {
     if(origExpr != null)
       evaluator.current = origExpr;
     
-    return _method(evaledArgs);
+    var value = _method(evaledArgs);
+    evaluator.lastValue = value;
+    return value;
   }
   
   String toString() {
