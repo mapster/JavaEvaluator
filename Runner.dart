@@ -17,8 +17,8 @@ class Runner {
     while(!isDone())
       step();
     
-    MemberSelect main = program.mainSelectors.last;
-    if(main != null){
+    if(!program.mainSelectors.isEmpty){
+      MemberSelect main = program.mainSelectors.last;
       print("main selector: ${main}");
   
       StaticClass clazz = environment.lookupClass(main.owner);

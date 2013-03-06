@@ -99,6 +99,9 @@ class ClassDecl extends ASTNode {
   final List<MethodDecl> constructors;
   final List<ASTNode> members;
   
+  const ClassDecl(this.name, List<ASTNode> this.members, 
+                  {this.instanceMethods, this.staticMethods, this.staticVariables, this.instanceVariables, this.constructors}) : super.fixed();
+  
   ClassDecl.fromJson(Map json, List<ASTNode> members) : this.name = new Identifier(json['name']),this.members = members, 
                                       this.staticMethods = members.where((m) => m.isStatic() && m is MethodDecl).toList(),
                                       this.instanceMethods = members.where((m) => !m.isStatic() && m is MethodDecl).toList(),
@@ -149,36 +152,47 @@ class If extends ASTNode {
 }
 
 class Literal extends ASTNode {
+  static const String INT = 'INT_LITERAL';
+  static const String STRING = 'STRING_LITERAL';
+  static const String CHAR = 'CHAR_LITERAL';
+  static const String BOOL = 'BOOLEAN_LITERAL';
+  static const String DOUBLE = 'DOUBLE_LITERAL';
+  
   final String _type;
   dynamic get value => _value;  
   dynamic _value;
+  bool get isText => _type == CHAR || _type == STRING;
   
   String get type {
     switch(_type){
-      case 'INT_LITERAL':
+      case INT:
         return 'int';
-      case 'STRING_LITERAL':
+      case STRING:
         return 'String';
     }
   }
   
   String toString() {
-    if(_type == 'STRING_LITERAL')
+    if(_type == STRING)
       return "\"$value\"";
+    else if(_type == CHAR)
+      return "'&#$value;'";
     else
       return "$value";
   }
   
   Literal.fromJson(Map json) : this._type = json['type'], super.fromJson(json) {
     switch(_type){
-      case 'INT_LITERAL':
+      case INT:
         _value = new IntegerValue(int.parse(json['value'])); break;
-      case 'DOUBLE_LITERAL':
+      case DOUBLE:
         _value = new DoubleValue(double.parse(json['value'])); break;
-      case 'STRING_LITERAL':
+      case STRING:
         _value = json['value']; break;
-      case 'BOOLEAN_LITERAL':
+      case BOOL:
         _value = new BooleanValue(json['value'] == 'true'); break;
+      case CHAR:
+        _value = new CharValue(int.parse(json['value'])); break;
       default:
         throw "Literal type not supported yet: ${_type}";
     }

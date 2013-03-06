@@ -2,7 +2,7 @@ part of JavaEvaluator;
 
 class Printer {
 
-  static Element _newElement({int nodeid, String text, bool newLine: false, bool keyword: false, bool indent: false}){
+  static Element _newElement({int nodeid, String text, bool newLine: false, bool keyword: false, bool indent: false, bool stringLiteral:false}){
     Element ele;
     if(newLine || indent)
       ele = new DivElement();
@@ -14,7 +14,8 @@ class Printer {
     if(newLine)   classes.add("line");
     if(keyword)   classes.add("keyword");
     if(indent)    classes.add("indent");
-    if(?text)     ele.text = text;
+    if(stringLiteral) classes.add("string_literal");
+    if(?text)     ele.innerHtml = text;
     if(!classes.isEmpty) ele.attributes['class'] = classes.reduce("", (r, e) => r.isEmpty ? e : "$r $e");
     
     return ele;
@@ -171,7 +172,8 @@ class Printer {
     return ifThen;
   }
   
-  static List<Element> _literalToHtml(Literal node, bool newLine) => [_newElement(newLine:newLine, keyword:(node.value is BooleanValue), nodeid:node.nodeId, text:"${node}")];
+  static List<Element> _literalToHtml(Literal node, bool newLine) => 
+      [_newElement(newLine:newLine, keyword:(node.value is BooleanValue), stringLiteral:node.isText ,nodeid:node.nodeId, text:"${node}")];
 
   static List<Element> _memberSelectToHtml(MemberSelect node, bool newLine){
     Element element = _newElement(nodeid:node.nodeId, newLine:newLine);

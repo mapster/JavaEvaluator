@@ -22,7 +22,8 @@ void main() {
   //  Parser.prog.root.map(f)
   bruk.onClick.listen((Event e){readFile();});
   stepBtn.onClick.listen((Event e){step();});
-  query("#example").onClick.listen((Event e){postSourceToJsonService(exampleSource);});
+  
+  query("#example").onClick.listen((Event e){postSourceToJsonService(name:"StaticTest.java", source:exampleSource);});
   
 //  drawArrow(new Pos(), new Pos(), 7);
 }
@@ -54,11 +55,11 @@ selectCurrent(){
 readFile(){
   InputElement fileChoice = query("#file");
   FileReader reader = new FileReader();
-  reader.onLoadEnd.listen((Event e){postSourceToJsonService(reader.result);});
+  reader.onLoadEnd.listen((Event e){postSourceToJsonService(name: fileChoice.files[0].name ,source:reader.result);});
   reader.readAsText(fileChoice.files[0]);
 }
 
-postSourceToJsonService(String data){
+postSourceToJsonService({String name, String source}){
   HttpRequest req = new HttpRequest();
   
   req.onReadyStateChange.listen((Event e){
@@ -75,9 +76,9 @@ postSourceToJsonService(String data){
       }
   });
   
-  req.open("POST", toJsonUrl);
+  req.open("POST", "$toJsonUrl/$name");
   req.setRequestHeader("Content-Type", "text/x-java");
-  req.send(data);
+  req.send(source);
 }
 
 void printEnv(){

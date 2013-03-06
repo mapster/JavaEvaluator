@@ -76,10 +76,13 @@ class Evaluator {
   _evalNewArray(NewArray newArray) {
     return new EvalTree(newArray, this, (List args){
       TypeNode type = newArray.type;
-     
-      var value = null;
-      if(type.isPrimitive)
-        value = TypeNode.DEFAULT_VALUES[type.type];
+      TypeNode rootType = type;
+      while(rootType.isArray) rootType = rootType.type;
+
+      var value = null; 
+      print(rootType.type);
+      if(rootType.isPrimitive)
+        value = TypeNode.DEFAULT_VALUES[rootType.type];
       else
         throw "Don't support object arrays yet!";
       
