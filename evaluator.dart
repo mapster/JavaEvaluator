@@ -8,7 +8,12 @@ class Evaluator {
     print("returnStack: ${_returnValues.length}");
     return _returnValues;
   }
-  ASTNode current;
+  ASTNode _current;
+  ASTNode get current => _current;
+          set current(ASTNode n) {
+            if(n != null && n.nodeId != ReferenceValue.invalid)
+              _current = n;
+          }
   var lastValue;
 
   Evaluator(this.environment){

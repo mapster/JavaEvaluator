@@ -3,7 +3,10 @@ library site;
 import 'dart:html';
 import 'dart:json';
 import 'dart:math';
-import '../Parser.dart';
+import '../Runner.dart';
+import '../ast.dart';
+
+part '../printer.dart';
 
 String exampleSource = "class StaticTest { static int tall0; static int tall2 = 4; static int tall3 = funksjon(fem()); static int tall4 = funksjon3(fem(), funksjon2(fem()), 3); static int funksjon(int tall){ tall0 = tall; return funksjon2(9); }static int funksjon2(int tall){ tall2 = 1; return tall; } static int fem(){ return 5; } static int funksjon3(int tall, int tall2, int tall3){ return tall2;}}";
 String toJsonUrl = "/tojson";
@@ -45,7 +48,7 @@ selectCurrent(){
   if(prevs != null)
     prevs.forEach((e) => e.classes.remove("current"));
   
-  if(runner.current != null && runner.current.nodeId != ReferenceValue.invalid){
+  if(runner.current != null){
     Element current = query("#node${runner.current.nodeId}");
     if(current != null)
       current.classes.add("current");

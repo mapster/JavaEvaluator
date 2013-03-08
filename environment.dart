@@ -11,7 +11,6 @@ class Environment {
   Environment(){
     packages[Identifier.DEFAULT_PACKAGE] = new Package(Identifier.DEFAULT_PACKAGE);
     _evaluator = new Evaluator(this);
-    packages[PkgIds.java] = javaPkg;
   }
   
   dynamic _lookup(final dynamic select){
@@ -242,6 +241,7 @@ class Array {
 
 abstract class Scope {
   final Map<Identifier, Value> _variables = new Map<Identifier, Value>();
+  Map<Identifier, Value> get variables => new Map.from(_variables); 
   
   Value _lookup(Identifier name) => _variables[name];
   void _newVariable(Identifier name, [Value value = ReferenceValue.invalid]){ _variables[name] = value; }

@@ -1,4 +1,4 @@
-part of JavaEvaluator;
+part of site;
 
 class Printer {
 
@@ -173,7 +173,7 @@ class Printer {
   }
   
   static List<Element> _literalToHtml(Literal node, bool newLine) => 
-      [_newElement(newLine:newLine, keyword:(node.value is BooleanValue), stringLiteral:node.isText ,nodeid:node.nodeId, text:"${node}")];
+      [_newElement(newLine:newLine, keyword:(node.type == Literal.BOOL), stringLiteral:node.isText ,nodeid:node.nodeId, text:"${node}")];
 
   static List<Element> _memberSelectToHtml(MemberSelect node, bool newLine){
     Element element = _newElement(nodeid:node.nodeId, newLine:newLine);
@@ -322,11 +322,11 @@ class Printer {
     name.classes.add("name");
     name.text = clazz.name.toString();
     
-    root.children..add(name)..add(variableMapToHtml(clazz._variables));
+    root.children..add(name)..add(variableMapToHtml(clazz.variables));
     return root;
   }
   
-  static Element variableMapToHtml(Map<Identifier, Value> variables){
+  static Element variableMapToHtml(Map<Identifier, dynamic> variables){
     DivElement root = new DivElement();
     root.classes.add("variables");
     root.children = variables.keys.map((id) {
@@ -348,7 +348,7 @@ class Printer {
     DivElement root = new DivElement();
     root.classes.addAll(["box", "block"]);
     
-    root.children.add(variableMapToHtml(block._variables));
+    root.children.add(variableMapToHtml(block.variables));
     if(block.subScope != null)
       root.children.add(blockToHtml(block.subScope, env));
     

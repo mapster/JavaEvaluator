@@ -1,4 +1,11 @@
-part of JavaEvaluator;
+library JavaEvaluator;
+
+import 'ast.dart';
+import 'types.dart';
+
+part 'evaluator.dart';
+part 'environment.dart';
+part 'classloader.dart';
 
 typedef dynamic EvalMethod(List args);
 

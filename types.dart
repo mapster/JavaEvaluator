@@ -1,4 +1,4 @@
-part of JavaEvaluator;
+library PrimitiveTypes;
 
 abstract class Value<T> {
   final T _value;
@@ -59,7 +59,6 @@ class LongValue extends NumberValue<int> {
   static const int MIN = -9223372036854775808;
   static const int MAX =  9223372036854775807;
 
-  static const TypeNode _type = const TypeNode.fixed("LONG"); 
   String get type => "LONG";
   
   factory LongValue(int value) {
