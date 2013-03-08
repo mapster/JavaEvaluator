@@ -11,6 +11,7 @@ class Environment {
   Environment(){
     packages[Identifier.DEFAULT_PACKAGE] = new Package(Identifier.DEFAULT_PACKAGE);
     _evaluator = new Evaluator(this);
+    packages[PkgIds.java] = javaPkg;
   }
   
   dynamic _lookup(final dynamic select){
@@ -116,6 +117,12 @@ class Environment {
   
   void newVariable(Identifier name, [Value value = ReferenceValue.invalid]){
     methodStack.last.newVariable(name, value);
+  }
+  
+  ReferenceValue addLibraryObject(dynamic obj){
+    ReferenceValue ref = new ReferenceValue(_counter++);
+    values[ref] = obj;
+    return ref;
   }
   
   ReferenceValue newObject(StaticClass clazz, List<Value> constructorArgs){
@@ -435,18 +442,19 @@ class ClassInstance extends ClassScope {
 
 class Package {
   final Identifier name;
-  final Map<Identifier, dynamic> _members = new Map<Identifier, dynamic>();
+  final Map<String, dynamic> _members;
   
-  Package(this.name);
+  Package(this.name) : _members = new Map<String, dynamic>();
+  const Package.fixed(this.name, this._members);
   
   void addMember(member){
     assert(member is Package || member is StaticClass);
-    _members[member.name] = member;
+    _members[member.name.name] = member;
   }
   
-  dynamic getMember(Identifier name) => _members[name];
-  StaticClass getClass(Identifier name) => _members[name];
-  Package getPackage(Identifier name) => _members[name];
+  dynamic getMember(Identifier name) => _members[name.name];
+  StaticClass getClass(Identifier name) => _members[name.name];
+  Package getPackage(Identifier name) => _members[name.name];
   
   List<Package> get getPackages => _members.values.where((m) => m is Package).toList();
   List<StaticClass> get getClasses => _members.values.where((c) => c is StaticClass).toList();

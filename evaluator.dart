@@ -38,13 +38,16 @@ class Evaluator {
       current = statement;
       return environment.lookup(statement);
     }
-    else if(statement is String)
-      return statement;
     else if(statement is Return)
       return _evalReturn(statement);
     else if(statement is Literal){
       //no further evaluation, setting current
       current = statement;
+      
+      if(statement.isString){
+        return environment.addLibraryObject(new JDKString(statement.value));
+      }
+      
       return statement.value;
     }
     else if(statement is ArrayAccess)

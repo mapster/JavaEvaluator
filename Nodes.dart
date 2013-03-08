@@ -161,7 +161,8 @@ class Literal extends ASTNode {
   final String _type;
   dynamic get value => _value;  
   dynamic _value;
-  bool get isText => _type == CHAR || _type == STRING;
+  bool get isText => _type == CHAR || isString;
+  bool get isString => _type == STRING;
   
   String get type {
     switch(_type){

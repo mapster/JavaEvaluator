@@ -11,6 +11,7 @@ part 'types.dart';
 part 'classloader.dart';
 part 'evaluator.dart';
 part 'environment.dart';
+part 'java/JavaLang.dart';
 
 class Program {
   final List<CompilationUnit> compilationUnits;
