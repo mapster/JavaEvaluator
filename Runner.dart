@@ -2,6 +2,7 @@ library JavaEvaluator;
 
 import 'ast.dart';
 import 'types.dart';
+import 'java/JavaLang.dart';
 
 part 'evaluator.dart';
 part 'environment.dart';

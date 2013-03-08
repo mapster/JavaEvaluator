@@ -8,6 +8,8 @@ class Environment {
   Map<Identifier, Package> packages = new Map<Identifier, Package>();
   BlockScope get currentBlock => methodStack.last.currentBlock;
   
+  int get newAddress => ++_counter;
+  
   Environment(){
     packages[Identifier.DEFAULT_PACKAGE] = new Package(Identifier.DEFAULT_PACKAGE);
     _evaluator = new Evaluator(this);
@@ -119,7 +121,7 @@ class Environment {
   }
   
   ReferenceValue addLibraryObject(dynamic obj){
-    ReferenceValue ref = new ReferenceValue(_counter++);
+    ReferenceValue ref = new ReferenceValue(newAddress);
     values[ref] = obj;
     return ref;
   }
@@ -158,7 +160,7 @@ class Environment {
   }
   
   ReferenceValue _newValue(dynamic value){
-    ReferenceValue addr = new ReferenceValue(++_counter);
+    ReferenceValue addr = new ReferenceValue(newAddress);
     values[addr] = value;
     return addr;
   }
