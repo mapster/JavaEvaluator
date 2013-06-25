@@ -16,7 +16,7 @@ class Printer {
     if(indent)    classes.add("indent");
     if(stringLiteral) classes.add("string_literal");
     if(?text)     ele.innerHtml = text;
-    if(!classes.isEmpty) ele.attributes['class'] = classes.reduce("", (r, e) => r.isEmpty ? e : "$r $e");
+    if(!classes.isEmpty) ele.attributes['class'] = classes.reduce((r, e) => r.isEmpty ? e : "$r $e");
     
     return ele;
   }
@@ -114,7 +114,9 @@ class Printer {
     header.children.add(_newElement(text: " ${node.name} {"));
     
     DivElement body = _newElement(indent: true);
-    body.children = node.members.map((m) => _toHtml(m, true)).toList().reduce(new List<Element>(), _reduceLists);
+    List children = new List();
+    node.members.map((m) => _toHtml(m, true)).toList().forEach((e) => _reduceLists(children, e));
+    body.children = children;
     
     return [header, body, _newElement(newLine: true, text: "}")];
   }
@@ -155,7 +157,9 @@ class Printer {
     
     //the then-block
     DivElement then = _newElement(indent: true);
-    then.children = node.then.map((e) => _toHtml(e, true)).toList().reduce(new List<Element>(), _reduceLists);
+    then.children = new List();
+    node.then.map((e) => _toHtml(e, true)).toList().forEach((e) => _reduceLists(then.children, e));
+    
     
     List<Element> ifThen = [header, then, _newElement(text: "}")];
     if(node.elze == null)
@@ -166,7 +170,8 @@ class Printer {
     elseHeader.children.addAll([_newElement(keyword: true, text: "else"), _newElement(text: " {")]);
     
     DivElement elseBody = _newElement(indent: true);
-    elseBody.children = node.elze.map((e) => _toHtml(e, true)).toList().reduce(new List<Element>(), _reduceLists);
+    elseBody.children = new List();
+    node.elze.map((e) => _toHtml(e, true)).toList().forEach((e) => _reduceLists(elseBody.children, e));
 
     ifThen.addAll([elseHeader, elseBody, _newElement(newLine:true, text:"}")]);
     return ifThen;
@@ -186,7 +191,11 @@ class Printer {
   static List<Element> _methodCallToHtml(MethodCall node, bool newLine) {
     Element element = _newElement(nodeid:node.nodeId, newLine:newLine);
     element.children.add(_newElement(text:"${node.select.toString()}("));
-    element.children.addAll(node.arguments.map((arg) => _toHtml(arg, false)).toList().reduce(new List<Element>(), _reduceCommaSeparated));    
+    
+    List<Element> args = new List<Element>();
+    node.arguments.map((arg) => _toHtml(arg, false)).toList().forEach((arg) => _reduceCommaSeparated(args, arg));
+    element.children.addAll(args);
+    
     element.children.add(_newElement(text:")"));
     if(newLine) element.children.add(_newElement(text:";"));
     return [element];
@@ -198,11 +207,17 @@ class Printer {
     if(node.type.returnType.type != null)
       header.children.addAll(_toHtml(node.type.returnType, false));
     header.children.add(_newElement(text:" ${node.publicName}("));
-    header.children.addAll(node.parameters.map((p) => _toHtml(p, false)).toList().reduce(new List<Element>(), _reduceCommaSeparated));
+    
+    List<Element> params = new List<Element>();
+    node.parameters.map((p) => _toHtml(p, false)).toList().forEach((p) => _reduceCommaSeparated(params, p));
+    header.children.addAll(params);
+    
+    
     header.children.add(_newElement(text:") {"));
     
     DivElement body = _newElement(indent:true);
-    body.children = node.body.map((e) => _toHtml(e, true)).toList().reduce(new List<Element>(), _reduceLists);
+    body.children = new List();
+    node.body.map((e) => _toHtml(e, true)).toList().forEach((e) => _reduceLists(body.children, e));
     
     return [header, body, _newElement(newLine:true, text:"}")];
   }
@@ -240,7 +255,11 @@ class Printer {
     element.children.add(_newElement(keyword:true, text:"new "));
     element.children.addAll(_toHtml(node.name, false));
     element.children.add(_newElement(text:"("));
-    element.children.addAll(node.arguments.map((arg) => _toHtml(arg, false)).toList().reduce(new List<Element>(), _reduceCommaSeparated));
+    
+    List<Element> args = new List<Element>();
+    node.arguments.map((arg) => _toHtml(arg, false)).toList().forEach((arg) => _reduceCommaSeparated(args, arg));
+    element.children.addAll(args);
+    
     element.children.add(_newElement(text:")"));
     return [element];
   }

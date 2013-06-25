@@ -178,21 +178,28 @@ class Environment {
     return methodStack.last.popStatement();
   }
   
-  void loadMethod(Identifier name, List args, {StaticClass inClass}) {
+  void loadMethod(Identifier name, List args, {ClassScope inClass}) {
     ClassScope parent = methodStack.last.parentScope;
     if(?inClass)
       parent = inClass;
     
-    MethodDecl method = parent.methods.singleMatching((MethodDecl m) 
-        => m.name == name.name && _checkParamArgTypeMatch(m.type.parameters, args.map(typeOf).toList()));
-    
-    methodStack.add(new MethodScope(method.body, parent));
-    
-    for(int i = 0; i < method.parameters.length; i++){
-      newVariable(new Identifier.fixed(method.parameters[i].name), args[i]);
+    if(parent is JDKString){
+      _evaluator.returnValues.last._method = (v) => parent.charAt(args[0]);
     }
-    
-    print("loading method: $name");
+    else {
+      MethodDecl method = parent.methods.singleWhere((MethodDecl m) 
+          => m.name == name.name && _checkParamArgTypeMatch(m.type.parameters, args.map(typeOf).toList()));
+      
+      print("loading method: ${method.name}");
+      print("body: ${method.body}");
+      
+      methodStack.add(new MethodScope(method.body, parent));
+      
+      for(int i = 0; i < method.parameters.length; i++){
+        newVariable(new Identifier.fixed(method.parameters[i].name), args[i]);
+      }
+
+    }
   }
   
   void addBlockScope(List statements){
@@ -233,7 +240,7 @@ class Array {
   final List _list;
   final TypeNode type;
   
-  Array(int size, value, this.type) : _list = new List.fixedLength(size, fill:value);
+  Array(int size, value, this.type) : _list = new List.filled(size, value);
   
   operator[](int index) => _list[index];
   void operator[]=(int index, value) { _list[index] = value; }
@@ -305,7 +312,7 @@ class BlockScope extends Scope {
     if(subScope != null)
       subScope.pushStatement(statement);
     else
-      _statements.insertRange(0, 1, statement);
+      _statements.insert(0, statement);
   }
   
   dynamic popStatement() {

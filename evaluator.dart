@@ -94,8 +94,9 @@ class Evaluator {
       else
         throw "Don't support object arrays yet!";
       
-      return _newArray(args.map((arg) => arg.value).toList(), value, 
-          newArray.dimensions.reduce(type, (TypeNode r, e) => new TypeNode(r)));
+      newArray.dimensions.forEach((e) => type = new TypeNode(type));
+      
+      return _newArray(args.map((arg) => arg.value).toList(), value, type);
       
     }, newArray.dimensions.toList());
   }
@@ -107,9 +108,19 @@ class Evaluator {
 
   _evalMethodCall(MethodCall call) {
     return new EvalTree(call, this, (List args){
+
+      
       var toReturn = new EvalTree(call, this);
       returnValues.add(toReturn);
-      environment.loadMethod(call.select, args);
+      if(call.select is MemberSelect){
+        var owner = eval(call.select.owner);
+        if(owner is ReferenceValue)
+          owner = environment.values[owner];
+        environment.loadMethod(call.select.member_id, args, inClass:owner);
+      }
+      else {
+        environment.loadMethod(call.select, args);
+      }
       return toReturn;
     }, new List.from(call.arguments)).execute();
   }
@@ -118,7 +129,14 @@ class Evaluator {
     var method;
     switch(binary.type){
       case BinaryOp.EQUAL:
-        method = (List args) => args[0] == args[1];
+//        method = (List args) => new BooleanValue(args[0] == args[1]);
+        method = (List args){
+        print(args[0].runtimeType);
+//        print(environment.values[args[0]]);
+        print(args[1].runtimeType);
+//        print(environment.values[args[1]]);
+        return new BooleanValue(args[0] == args[1]);
+        };
         break;
       case BinaryOp.PLUS:
         method = (List args) {
@@ -151,6 +169,7 @@ class Evaluator {
 
   _evalIf(If ifStat){
       return new EvalTree(ifStat, this, (List args){
+        print(args[0].runtimeType);
         if(args[0] is! BooleanValue)
           throw "If condition must evaluate to a Boolean value! (: ${args[0].runtimeType})";
           
@@ -187,7 +206,7 @@ class Evaluator {
   
   _evalReturn(Return ret){
     return new EvalTree(ret, this, (List args){
-      returnValues.removeLast().method = (List l) => args.first;
+      returnValues.removeLast()._method = (List l) => args.first;
       environment.methodReturn();
     }, [ret.expr]).execute();
   }  

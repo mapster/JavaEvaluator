@@ -150,7 +150,7 @@ class ASTNode {
     }
   }
   
-  bool isStatic() => modifiers != null && modifiers.contains("static");
+  bool get isStatic => modifiers != null && modifiers.contains("static");
     
 }
 
@@ -232,10 +232,10 @@ class ClassDecl extends ASTNode {
                   {this.instanceMethods, this.staticMethods, this.staticVariables, this.instanceVariables, this.constructors}) : super.fixed();
   
   ClassDecl.fromJson(Map json, List<ASTNode> members) : this.name = new Identifier(json['name']),this.members = members, 
-                                      this.staticMethods = members.where((m) => m.isStatic() && m is MethodDecl).toList(),
-                                      this.instanceMethods = members.where((m) => !m.isStatic() && m is MethodDecl).toList(),
-                                      this.staticVariables = members.where((v) => v.isStatic() && v is Variable).toList(),
-                                      this.instanceVariables = members.where((v) => !v.isStatic() && v is Variable).toList(),
+                                      this.staticMethods = members.where((m) => m.isStatic && m is MethodDecl).toList(),
+                                      this.instanceMethods = members.where((m) => !m.isStatic && m is MethodDecl).toList(),
+                                      this.staticVariables = members.where((v) => v.isStatic && v is Variable).toList(),
+                                      this.instanceVariables = members.where((v) => !v.isStatic && v is Variable).toList(),
                                       this.constructors = members.where((m) => m is MethodDecl && m.isConstructor).toList(),
                                       super.fromJson(json){
     this.constructors.forEach((m) => m.publicName = name.name);
@@ -254,7 +254,7 @@ class Identifier extends ASTNode {
   final String name;
   
   Identifier(this.name) : super();
-  const Identifier.fixed(this.name, [int startPos, int endPos]) : super.fixed(startPos:startPos, endPos:endPos);
+  const Identifier.fixed(this.name) : super.fixed();
   Identifier.fromJson(Map json) : name = json['value'], super.fromJson(json);
   static const Identifier CONSTRUCTOR = const Identifier.fixed("<init>");
   static const Identifier DEFAULT_PACKAGE = const Identifier.fixed("");
@@ -361,7 +361,7 @@ class MethodDecl extends ASTNode {
                                                                                                             this.parameters = parameters, super(startPos:startPos, endPos:endPos);
   MethodDecl.fromJson(Map json, TypeNode returnType, parameters, this._body) : this._name = json['name'], this.type = new MethodType(returnType, parameters.map((v) => v.type).toList()), this.parameters = parameters, super.fromJson(json); 
   
-  bool get isConstructor => !isStatic() && _name == CONSTRUCTOR_NAME;
+  bool get isConstructor => !isStatic && _name == CONSTRUCTOR_NAME;
   String get name => _name;
          set publicName(String name) => _publicName = name;
   String get publicName => _publicName != null ? _publicName : name;
@@ -442,6 +442,8 @@ class TypeNode extends ASTNode {
   
   static const TypeNode VOID = const TypeNode.fixed("VOID");
   static const TypeNode STRING = const TypeNode.fixed(const Identifier.fixed("String"));
+  static const TypeNode INT = const TypeNode.fixed("INT");
+  static const TypeNode CHAR = const TypeNode.fixed("CHAR");
   
   String toString(){
     if(isArray)
@@ -478,6 +480,7 @@ class Variable extends ASTNode {
   
 //  Variable(this.name, this.type, this.initializer, [int startPos, int endPos, List<String> modifiers]) : super(startPos, endPos, modifiers);
   Variable.fromJson(Map json, this.type, this.initializer) : name = json['name'], super.fromJson(json);
+  const Variable(this.name, this.type, this.initializer) : super.fixed();
   
   int get hashCode => 17 * 37 + name.hashCode; 
   

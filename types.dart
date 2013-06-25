@@ -3,6 +3,12 @@ library PrimitiveTypes;
 abstract class Value<T> {
   final T _value;
   const Value(this._value);
+ 
+  bool operator==(other){
+    if(identical(other, this))
+      return true;
+    return _value == other._value;
+  }
 }
 
 abstract class PrimitiveValue<T> extends Value<T> {  
@@ -20,11 +26,6 @@ class ReferenceValue extends Value<int> {
   String toString() => "@$_value";
   
   int get hashCode => 37 + _value;
-  bool operator==(other){
-    if(identical(other, this))
-      return true;
-    return _value == other._value;
-  }
 }
 
 

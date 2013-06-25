@@ -60,47 +60,44 @@ class Runner {
 }
 
 class EvalTree extends ASTNode {
-  final List args;
-  final List evaledArgs = [];
-  final Evaluator evaluator;
+  final List _args;
+  final List _evaledArgs = [];
+  final Evaluator _evaluator;
   EvalMethod _method;
-  final origExpr;
+  final _origExpr;
   
-  EvalMethod get method => _method;
-  set method(EvalMethod m) => _method = m;
-  
-  EvalTree(this.origExpr, this.evaluator, [this._method, this.args = const []]) : super();
+  EvalTree(this._origExpr, this._evaluator, [this._method, this._args = const []]) : super();
   
   dynamic execute(){
     //evaluate arguments
     //
     
     //skip literals
-    while(!args.isEmpty && args.first is Literal){
-      evaledArgs.addLast(evaluator.eval(args.removeAt(0)));
+    while(!_args.isEmpty && _args.first is Literal){
+      _evaledArgs.add(_evaluator.eval(_args.removeAt(0)));
     }
     
-    if(!args.isEmpty){
-      var evaledArg = evaluator.eval(args.first);
+    if(!_args.isEmpty){
+      var evaledArg = _evaluator.eval(_args.first);
       if(evaledArg is EvalTree)
-        args[0] = evaledArg;
+        _args[0] = evaledArg;
       else {
-        evaledArgs.addLast(evaledArg);
-        args.removeAt(0);
+        _evaledArgs.add(evaledArg);
+        _args.removeAt(0);
       }
       //return _this_ since it has now stepped one execution
       return this;
     }
     
-    if(origExpr != null)
-      evaluator.current = origExpr;
+    if(_origExpr != null)
+      _evaluator.current = _origExpr;
     
-    var value = _method(evaledArgs);
-    evaluator.lastValue = value;
+    var value = _method(_evaledArgs);
+    _evaluator.lastValue = value;
     return value;
   }
   
   String toString() {
-    return "evalTree [$origExpr ${evaledArgs.reduce("", (r,e) => "$r, $e")}${args.reduce("", (r,e) => "$r, $e")}]";
+    return "evalTree [$_origExpr ${_evaledArgs.isEmpty ? "" : _evaledArgs.reduce((r,e) => "$r, $e")}${_args.isEmpty ? "" : _args.reduce((r,e) => "$r, $e")}]";
   }
 }
