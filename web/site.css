@@ -12,6 +12,19 @@
   float: right;
 }
 
+#srcselector {
+  border: 3px solid #a0ffa0;
+  background-color: #f0fff0;
+  padding: 1px;
+  width: 40em;
+}
+
+#srcselector h2 {
+  background-color: #fff0f0;
+  margin: -1px -1px 4px -1px;
+  padding: 2px;
+  font-family: sans-serif;
+}
 .keyword {
   color: #7F0055;
   font-weight: bold;  

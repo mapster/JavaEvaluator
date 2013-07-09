@@ -10,9 +10,35 @@
     <h1>JavaEvaluator</h1>
     <div id="container">
       <form>
-        <input id="example" type="button" value="Use example file"/>
-        <input id="file" type="file"/>
-        <input id="bruk" type="button" value="Bruk"/>
+        <div id="srcselector">
+         <h2 id="selectSourceCode" onClick="toggleSelectSrcCode()">Select Source Code</h2>
+          <p>
+            <select id="select" size="3"> 
+            <option value="*upload*" selected="true">* Upload a File *</option>
+            <option value="*input*">* Input Code *</option>
+            <option value="">-- or Select Example Below --</option>
+            <option value="ArrayTest.java">ArrayTest.java</option>
+            <option value="Mains.java">Mains.java</option>
+            <option value="MainTest.java">MainTest.java</option>
+            <option value="ObjectTest.java">ObjectTest.java</option>
+            <option value="StaticTest.java">StaticTest.java</option>
+            </select>
+          </p>
+          <p id="uploadFile">
+            <input id="file" type="file" />
+            <input id="bruk" type="button" value="Upload"/>
+          </p>
+          <p id="inputCode">
+        <textarea id="src" cols="40" rows="20">
+public class Test {
+  public static void main() {
+  // ...
+  }
+}
+         </textarea>
+         </p>
+        </div>
+        <br />
         <input id="step" type="button" value="Step"/>
       </form>
       <br/>
