@@ -286,6 +286,7 @@ class Literal extends ASTNode {
   static const String CHAR = 'CHAR_LITERAL';
   static const String BOOL = 'BOOLEAN_LITERAL';
   static const String DOUBLE = 'DOUBLE_LITERAL';
+  static const String NULL = 'NULL_LITERAL';
   
   final String type;
   dynamic get value => _value;  
@@ -315,6 +316,8 @@ class Literal extends ASTNode {
         _value = new BooleanValue(json['value'] == 'true'); break;
       case CHAR:
         _value = new CharValue(int.parse(json['value'])); break;
+      case NULL:
+        _value = ReferenceValue.nullRef; break;
       default:
         throw "Literal type not supported yet: ${type}";
     }

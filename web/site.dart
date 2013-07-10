@@ -31,6 +31,7 @@ InputElement selectBtn = query("#select");
 InputElement srcInput = query("#srcinput");
 ElementList components = queryAll(".component");
 Element srcSelector = query("#srcselector");
+ParagraphElement status = query("#status");
 
 void main() {
   InputElement bruk = query("#bruk");
@@ -54,26 +55,31 @@ void changeUiMode(int newMode) {
       changeComponentMode("#srcselector", ".component", "");
       stepBtn.value = "Start";
       stepBtn.disabled = true;
+      status.text = "Please input a program";
     }
     else if(uiMode == UIMODE_SOURCE_SELECTED) {
       changeComponentMode(".control", "", ".component");
       stepBtn.value = "Start";
       stepBtn.disabled = false;
+      status.text = "Ready";
     }
     else if(uiMode == UIMODE_EVAL_STARTED) {
       changeComponentMode(".control", "", ".component");
       stepBtn.value = "Step";
       stepBtn.disabled = false;
+      status.text = "Running";
     }
     else if(uiMode == UIMODE_STEPPING) {
       changeComponentMode("", "", ".component");
       stepBtn.value = "Step";
       stepBtn.disabled = false;
+      status.text = "Running";
     }
     else if(uiMode == UIMODE_FINISHED) {
       changeComponentMode("", "", ".component");
       stepBtn.value = "Done";
       stepBtn.disabled = true;
+      status.text = "Stopped";
     }
   }
 }
@@ -190,6 +196,7 @@ String getJavaSource(String url){
 postSourceToJsonService({String name, String source}){
   HttpRequest req = new HttpRequest();
   
+  status.text = "Loading program '$name'...";
   req.onReadyStateChange.listen((Event e){
       if(req.readyState == HttpRequest.DONE && (req.status == 200 || req.status == 0)){
         print("parsing");
@@ -205,6 +212,7 @@ postSourceToJsonService({String name, String source}){
         query("#stack").text = runner.environment.toString();
         changeUiMode(UIMODE_SOURCE_SELECTED);
         selectNext();
+        status.text = "Program '$name' loaded";
       }
   });
   

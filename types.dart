@@ -23,7 +23,15 @@ abstract class PrimitiveValue<T> extends Value<T> {
 class ReferenceValue extends Value<int> {
   const ReferenceValue(addr) : super(addr);
   static const invalid = const ReferenceValue(-1);
-  String toString() => "@$_value";
+  static const nullRef = const ReferenceValue(-2);
+  String toString() {
+    if(_value == -1)
+      return "@undef";
+    else if(_value == -2)
+      return "null";
+    else
+      return "@$_value";
+  }
   
   int get hashCode => 37 + _value;
 }

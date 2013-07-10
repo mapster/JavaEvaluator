@@ -261,4 +261,12 @@ div.arrow {
   margin: 1px;
 }
 
-
+.status {
+  margin: 0px;
+  margin-top: -3px;
+  background-color: #efe;
+  color: #000;
+  padding: 4px 6px 4px;
+  font-style: italic;
+  border-bottom: 1px solid #787;
+}
