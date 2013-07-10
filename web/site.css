@@ -1,31 +1,155 @@
+body {
+  background-color: #fff;
+}
+
 .indent {
   padding-left: 15px;  
 }
 
 .component {
   padding: 0px;
-  border-width: 3px;
+  border-width: 0px;
+  border-top-width: 1px;
+  border-bottom-width: 1px;
   border-style: solid;
-  margin: 6px;
-  float: left;
-  background-color: #f0f0ff;
+  margin: 20px 6px 20px 6px;
+  background-color: #eeeeff;
+  border-color: #e8e8f8;
 }
 
 .compbody {
-  margin: 2px 6px 2px 2px;
+  margin: 4px 2px 2px 2px;
   clear: left;
+}
+
+.comphead {
+  margin: -14px 3px 3px 6px;
+  font-size: 14px;
+  line-height: 14px;
+  padding: 0px 1px;
+  background-color: #f8f8f8;
+  float: left;
+  font-variant: small-caps;
+  font-family: sans-serif;
+  font-weight: bold;
+}
+
+.comphead span {
+  bottom: -2px;
+  position: relative;
+  margin: 0px;
+  padding: 0px;
+}
+
+#container {
+  float: left;
+  background: #f8f8f8;
+  border: 3px solid #000;
+  margin: 20px 2px;
+}
+
+#container > .comphead {
+  font-size: 20px;
+  line-height: 20px;
+  margin-top: -20px;
+  background: #fff;
+}
+
+.mainview {
+  float: left;
+}
+
+.sideview {
+  float: left;
+}
+
+#sideview1 {
+  min-width: 10em;
+}
+
+.bottomview {
+  clear: both;
 }
 
 .javasource {
   font-family: monospace;
   font-size: 15px;
-  border-color: #8080dd;
+  border-color: #888080;
+  background-color: #fffefe;
   clear: left;
+  width: 40em;
+  height: 100%;
+  min-height: 100px;
 }
 
 .javasource .comphead {
-  color: #8080dd;
+  color: #888080;
 }  
+
+.srcselector {
+  border-color: #686;
+  background-color: #efe;
+}
+
+.srcselector .comphead {
+  color: #686;
+}
+
+
+.control {
+  border-color: #688;
+  background-color: #eff;
+}
+
+.control .comphead {
+  color: #688;
+}
+
+.stack {
+  border-color: #868;
+  background-color: #fef;
+}
+
+.stack .comphead {
+  color: #868;
+}
+
+.memory {
+  border-color: #876;
+  background-color: #fed;
+}
+
+.memory .comphead {
+  color: #876;
+}
+
+.output {
+  border-color: #888;
+  background-color: #fff;
+  min-height: 40px;
+}
+
+.output .comphead {
+  color: #888;
+}
+
+.component.highlight {
+  border-color: #f00;
+  background-color: #fdd;
+}
+
+.component.highlight .comphead {
+  color: #f00;
+}
+
+.component.disabled {
+  border-color: #666;
+  background-color: #ddd;
+}
+
+.component.disabled .comphead {
+  color: #666;
+}
 
 .left {
   float: left;
@@ -39,46 +163,58 @@
   clear: both;
 }
 
-.environment, .environment .box {
-  border-color: #8080ff;
+.environment {
+  border-color: #668;
+  background-color: #eef;
 }
 .environment .comphead {
-  color: #8080ff;
+  color: #668;
 }
 
 .environment .box {
   border-width: 1px;
   background-color: #efefff;
+  border-color: #e0e0f0;
 }
 .environment .box .box {
   background-color: #dfdfff;
+  border-color: #d0d0f0;
 }
 .environment .box .box .box {
   background-color: #cfcfff;
+  border-color: #c0c0f0;
 }
 .environment .box .box .box .box {
   background-color: #bfbfff;
+  border-color: #b0b0f0;
 }
 .environment .box .box .box .box .box {
   background-color: #afafff;
+  border-color: #a0a0f0;
 }
 .environment .box .box .box .box .box .box {
   background-color: #9f9fff;
+  border-color: #8080f0;
 }
 .environment .box .box .box .box .box .box .box {
-  background-color: #efefff;
+  background-color: #8f8fff;
+  border-color: #8080f0;
 }
 
 .lastvalue {
-  border-color: #dd8080;
+  border-color: #886;
+  background-color: #ffe;
 }
 .lastvalue .comphead {
-  color: #dd8080;
+  color: #886;
 }
 
-.srcselector {
-  border: 3px solid #80a080;
-  background-color: #f8fff8;
+#inputcode {
+  margin: 2px 6px;
+}
+
+#srcinput {
+  width: 100%;
 }
 
 .srcselector .comphead {
@@ -120,21 +256,3 @@ div.arrow {
 }
 
 
-p.comphead {
-  margin: -14px 3px 3px 3px;
-  font-size: 14px;
-  line-height: 14px;
-  padding: 0px 1px;
-  background-color: white;
-  float: left;
-  font-variant: small-caps;
-  font-family: sans-serif;
-  font-weight: bold;
-}
-
-.comphead span {
-  bottom: -2px;
-  position: relative;
-  margin: 0px;
-  padding: 0px;
-}

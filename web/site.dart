@@ -8,6 +8,14 @@ import '../ast.dart';
 
 part '../printer.dart';
 
+final int UIMODE_STARTING = 0;
+final int UIMODE_NO_SOURCE = 1;
+final int UIMODE_SOURCE_SELECTED = 2;
+final int UIMODE_EVAL_STARTED = 3;
+final int UIMODE_STEPPING = 4;
+final int UIMODE_FINISHED = 5;
+int uiMode = UIMODE_STARTING;
+
 String exampleSource = "class StaticTest { static int tall0; static int tall2 = 4; static int tall3 = funksjon(fem()); static int tall4 = funksjon3(fem(), funksjon2(fem()), 3); static int funksjon(int tall){ tall0 = tall; return funksjon2(9); }static int funksjon2(int tall){ tall2 = 1; return tall; } static int fem(){ return 5; } static int funksjon3(int tall, int tall2, int tall3){ return tall2;}}";
 String toJsonUrl = "/tojson";
 String javaUrl = "/java";
@@ -20,45 +28,102 @@ Program prog;
 Runner runner;
 InputElement stepBtn = query("#step");
 InputElement selectBtn = query("#select");
+InputElement srcInput = query("#srcinput");
+ElementList components = queryAll(".component");
+Element srcSelector = query("#srcselector");
+
 void main() {
   InputElement bruk = query("#bruk");
-
-  query("#uploadFile").style.display = "block";
-  query("#inputCode").style.display = "none";
-
-  //  Parser.prog.root.map(f)
   bruk.onClick.listen((Event e){readFile();});
+
+  changeUiMode(UIMODE_NO_SOURCE);
+  clearSrcInput();
+  query("#clearsrc").onClick.listen((Event e) {clearSrcInput();});
+  //  Parser.prog.root.map(f)
   stepBtn.onClick.listen((Event e){step();});
-  stepBtn.value = "Start";
-  stepBtn.disabled = true;
   selectBtn.onClick.listen((Event e){selectClicked();});
   selectBtn.size = selectBtn.children.length;
   
 //  drawArrow(new Pos(), new Pos(), 7);
 }
 
+void changeUiMode(int newMode) {
+  if(uiMode != newMode) {
+    uiMode = newMode;
+    if(uiMode == UIMODE_NO_SOURCE) {
+      changeComponentMode("#srcselector", ".component", "");
+      stepBtn.value = "Start";
+      stepBtn.disabled = true;
+    }
+    else if(uiMode == UIMODE_SOURCE_SELECTED) {
+      changeComponentMode(".control", "", ".component");
+      stepBtn.value = "Start";
+      stepBtn.disabled = false;
+    }
+    else if(uiMode == UIMODE_EVAL_STARTED) {
+      changeComponentMode(".control", "", ".component");
+      stepBtn.value = "Step";
+      stepBtn.disabled = false;
+    }
+    else if(uiMode == UIMODE_STEPPING) {
+      changeComponentMode("", "", ".component");
+      stepBtn.value = "Step";
+      stepBtn.disabled = false;
+    }
+    else if(uiMode == UIMODE_FINISHED) {
+      changeComponentMode("", "", ".component");
+      stepBtn.value = "Done";
+      stepBtn.disabled = true;
+    }
+  }
+}
+
+void changeComponentMode(String highlightPat, String disablePat, String normalPat) {
+  for(Element comp in components) {
+    if(highlightPat != "" && comp.matches(highlightPat)) {
+      comp.classes.remove("disabled");
+      comp.classes.add("highlight");
+    }
+    else if(disablePat != "" && comp.matches(disablePat)) {
+      comp.classes.add("disabled");
+      comp.classes.remove("highlight");
+    }
+    else if(normalPat != "" && comp.matches(normalPat)) {
+      comp.classes.remove("disabled");
+      comp.classes.remove("highlight");
+    }
+  }
+}
+
+void clearSrcInput() {
+  srcInput.text = "public class Test {\n  public static void main() {\n  // ...\n  }\n}";
+}
 void selectClicked() {
   switch(selectBtn.value) {
     case "*upload*":
-      query("#uploadFile").style.display = "block";
-      query("#inputCode").style.display = "none";
+      //query("#uploadFile").style.display = "block";
+      query("#inputcode").style.display = "none";
+      query("#javasource").style.display = "block";
 //      selectBtn.size = 3;
       selectBtn.size = selectBtn.children.length;
       break;
     case "*input*":
-      query("#uploadFile").style.display = "none";
-      query("#inputCode").style.display = "block";
+      //query("#uploadFile").style.display = "none";
+      query("#inputcode").style.display = "block";
+      query("#javasource").style.display = "none";
 //      selectBtn.size = 3;
       selectBtn.size = selectBtn.children.length;
       break;
     case "":
-      query("#uploadFile").style.display = "none";
-      query("#inputCode").style.display = "none";
+      //query("#uploadFile").style.display = "none";
+      query("#inputcode").style.display = "none";
+      query("#javasource").style.display = "block";
       selectBtn.size = selectBtn.children.length;
       break;
     default:
-      query("#uploadFile").style.display = "none";
-      query("#inputCode").style.display = "none";
+      //query("#uploadFile").style.display = "none";
+      query("#inputcode").style.display = "none";
+      query("#javasource").style.display = "block";
       selectBtn.size = selectBtn.children.length;
       String fileName = selectBtn.value;
       if(new RegExp(r"[a-zA-Z]+\.java$").matchAsPrefix(fileName) != null) {
@@ -71,7 +136,7 @@ void selectClicked() {
 
 void step(){
   if(!runner.isDone()){
-    stepBtn.value = "Step";
+    changeUiMode(UIMODE_STEPPING);
     runner.step();
     printEnv();
     query("#stack").text = runner.environment.toString();
@@ -79,8 +144,7 @@ void step(){
   }
 
   if(runner.isDone()) {
-    stepBtn.disabled = true;
-    stepBtn.value = "Start";
+    changeUiMode(UIMODE_FINISHED);
   }
 }
 
@@ -116,6 +180,7 @@ postSourceToJsonService({String name, String source}){
   req.onReadyStateChange.listen((Event e){
       if(req.readyState == HttpRequest.DONE && (req.status == 200 || req.status == 0)){
         print("parsing");
+        srcInput.text = source;
         prog = (new Program(parse(req.responseText)));
         print("intializing runner");
         runner = new Runner(prog);
@@ -125,6 +190,7 @@ postSourceToJsonService({String name, String source}){
         environment.children.clear();
         printEnv();
         query("#stack").text = runner.environment.toString();
+        changeUiMode(UIMODE_SOURCE_SELECTED);
       }
   });
   

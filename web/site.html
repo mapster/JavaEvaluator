@@ -7,70 +7,80 @@
     <link rel="stylesheet" href="site.css">
   </head>
   <body>
-    <h1>JavaEvaluator</h1>
-    <div id="container">
-      <form>
-        <div class="srcselector component">
-         <p class="comphead"><span>Select Source Code</span></p>
-         <div class="compbody">
+    <form id="container">
+      <p class="comphead"><span>JavaEvaluator</span></p>
+      <div class="clear"></div>
+      <div class="mainview">
+      <div class="javasource component">
+        <p class="comphead"><span>Source</span></p>
+        <div class="compbody"><div id="javasource"><div class="placeholder"></div></div>
+          <div id="inputcode" style="display: none">
+            <textarea id="srcinput" rows="20"></textarea>
+            <br />
+            <input id="clearsrc" type="button" value="Clear" />
+            <input id="usesrc" type="button" value="Use the Source!" />
+          </div>
+          </div>
+      </div><!-- end javasource -->
+      <div class="output component">
+        <p class="comphead"><span>Output</span></p>
+        <div class="compbody" id="output"><div class="placeholder"></div></div>
+      </div>
+      </div><!-- end mainview -->
+      <div id="sideview1" class="sideview">
+      <div class="control component">
+        <p class="comphead"><span>Control</span></p>
+        <div class="compbody">
+      <input id="step" type="button" value="Start"/>
+        </div>
+      </div><!-- end lastvalue -->
+      <div class="lastvalue component">
+        <p class="comphead"><span>Last Value</span></p>
+        <div class="compbody"><div id="lastvalue">&nbsp;</div></div>
+      </div><!-- end lastvalue -->
+      <div class="environment component">
+        <p class="comphead"><span>Environment</span></p>
+        <div class="compbody"><div id="environment"></div></div>
+      </div><!-- end environment -->
+      <div class="stack component">
+        <p class="comphead"><span>Stack</span></p>
+        <div class="compbody"><div id="stack"></div></div>
+      </div><!-- end stack -->
+      </div><!-- end sideview -->
+      <div id="sideview2" class="sideview">
+      <div id="srcselector" class="srcselector component">
+        <p class="comphead"><span>Select Source Code</span></p>
+        <div class="compbody">
           <p>
             <select id="select" size="3"> 
-            <option value="*upload*" selected="true">** Upload a File **</option>
-            <option value="*input*">** Input Code **</option>
-            <option value="">-- or Select Example Below --</option>
-            <option value="ArrayTest.java">ArrayTest.java</option>
-            <option value="Mains.java">Mains.java</option>
-            <option value="MainTest.java">MainTest.java</option>
-            <option value="ObjectTest.java">ObjectTest.java</option>
-            <option value="StaticTest.java">StaticTest.java</option>
+              <option value="*upload*" selected="true">** Upload a File **</option>
+              <option value="*input*">** Edit Code **</option>
+              <option value="">-- or Select Example Below --</option>
+              <option value="ArrayTest.java">ArrayTest.java</option>
+              <option value="Mains.java">Mains.java</option>
+              <option value="MainTest.java">MainTest.java</option>
+              <option value="ObjectTest.java">ObjectTest.java</option>
+              <option value="StaticTest.java">StaticTest.java</option>
             </select>
           </p>
           <p id="uploadFile">
             <input id="file" type="file" /><br />
             <input id="bruk" type="button" value="Upload"/>
           </p>
-          <div id="inputCode">
-        <textarea id="src" cols="40" rows="20">
-public class Test {
-  public static void main() {
-  // ...
-  }
-}
-         </textarea>
-         <br /><input id="use" type="button" value="Use the Source!" />
-         </div>
-         </div>
         </div>
+      </div><!-- end srcselector -->
+      </div><!-- end sideview -->
         <div class="clear"></div>
-        <input id="step" type="button" value="Start"/>
-      </form>
-      <br/>
-    </div>
-    <div class="lastvalue component">
-      <p class="comphead"><span>Last Value</span></p>
-      <div id="compbody"><div id="lastvalue"></div></div>
-    </div>
-    <div id="java">
-      <div class="javasource component">
-        <p class="comphead"><span>Source</span></p>
-        <div class="compbody"><div id="javasource"><div class="placeholder"></div></div></div>
-      </div>
-      <div class="environment component">
-        <p class="comphead"><span>Environment</span></p>
-        <div class="compbody"><div id="environment"></div></div>
-      </div>
-    </div>
-    <div class="stack component">
-      <p class="comphead"><span>Stack</span></p>
-      <div class="compbody"><div id="stack"></div></div>
-    </div>
-    <div class="memory component">
-      <p class="comphead"><span>Memory</span></p>
-    <div class="compbody"><table id="memory">
-      <tr><td>Address</td><td>Value</td></tr>
-    </table></div>
-    </div>
-    <script type="application/dart" src="site.dart"></script>
-    <script src="packages/browser/dart.js"></script>
+      <div class="bottomview">
+      <div class="memory component">
+        <p class="comphead"><span>Memory</span></p>
+        <div class="compbody"><table id="memory">
+            <tr><td>Address</td><td>Value</td></tr>
+        </table></div>
+      </div><!-- end memory -->
+      </div><!-- end bottomview -->
+      <script type="application/dart" src="site.dart"></script>
+      <script src="packages/browser/dart.js"></script>
+    </form>
   </body>
 </html>
