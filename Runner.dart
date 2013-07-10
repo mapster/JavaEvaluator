@@ -16,7 +16,7 @@ class Runner {
 
   ASTNode get current => environment._evaluator.current;
   dynamic get lastValue => environment._evaluator.lastValue;
-
+  dynamic get next => environment.topStatement();
   Runner(this.program) {
     environment = new Environment();
     ClassLoader loader = new ClassLoader(environment, environment._evaluator);
@@ -42,7 +42,7 @@ class Runner {
     
   void step(){
     var toEval = environment.popStatement();
-
+    print("toEval: $toEval");
     environment._evaluator.returnValues;
     print("preEvaluation: $current - id: ${current != null ? current.nodeId : "null"}");
     BlockScope currentBlock = environment.currentBlock;

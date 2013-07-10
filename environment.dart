@@ -177,6 +177,12 @@ class Environment {
       methodStack.removeLast();
     return methodStack.last.popStatement();
   }
+
+  dynamic topStatement(){
+    while(!methodStack.isEmpty && methodStack.last.isDone)
+      methodStack.removeLast();
+    return methodStack.last.topStatement();
+  }
   
   void loadMethod(Identifier name, List args, {ClassScope inClass}) {
     ClassScope parent = methodStack.last.parentScope;
@@ -326,6 +332,19 @@ class BlockScope extends Scope {
     }
     
     return _statements.removeAt(0);
+  }
+  
+  dynamic topStatement() {
+    //remove subScope if it is empty
+    if(subScope != null && subScope.isDone)
+      subScope = null;
+    
+    if(subScope != null){
+      assert(!subScope.isDone);
+      return subScope.topStatement();
+    }
+    
+    return _statements.elementAt(0);
   }
   
   bool get isDone {

@@ -141,6 +141,7 @@ void step(){
     printEnv();
     query("#stack").text = runner.environment.toString();
     selectCurrent();
+    selectNext();
   }
 
   if(runner.isDone()) {
@@ -157,6 +158,18 @@ selectCurrent(){
     Element current = query("#node${runner.current.nodeId}");
     if(current != null)
       current.classes.add("current");
+  }
+}
+
+selectNext(){
+  List<Element> prevs = queryAll(".next");
+  if(prevs != null)
+    prevs.forEach((e) => e.classes.remove("next"));
+  
+  if(runner.next != null){
+    Element next = query("#node${runner.next.nodeId}");
+    if(next != null)
+      next.classes.add("next");
   }
 }
 
@@ -191,6 +204,7 @@ postSourceToJsonService({String name, String source}){
         printEnv();
         query("#stack").text = runner.environment.toString();
         changeUiMode(UIMODE_SOURCE_SELECTED);
+        selectNext();
       }
   });
   

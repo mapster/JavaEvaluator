@@ -1,5 +1,7 @@
 body {
   background-color: #fff;
+  font-family: sans-serif;
+  font-size: 12px;
 }
 
 .indent {
@@ -245,7 +247,11 @@ div.arrow {
 }
 
 .current {
-  background-color: red;  
+  background-color: #fd0;  
+}
+
+.next {
+  background-color: #f60;
 }
 
 .box {
