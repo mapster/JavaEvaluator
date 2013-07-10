@@ -13,37 +13,43 @@ String toJsonUrl = "/tojson";
 String javaUrl = "/java";
 
 DivElement value = query("#lastvalue");
-DivElement java = query("#java");
+DivElement javaSource = query("#javasource");
 DivElement environment = query("#environment");
 TableElement memory = query("#memory");
 Program prog;
 Runner runner;
 InputElement stepBtn = query("#step");
-Element selectSrcCode = query("#selectSourceCode");
 InputElement selectBtn = query("#select");
 void main() {
   InputElement bruk = query("#bruk");
 
+  query("#uploadFile").style.display = "block";
+  query("#inputCode").style.display = "none";
+
   //  Parser.prog.root.map(f)
   bruk.onClick.listen((Event e){readFile();});
   stepBtn.onClick.listen((Event e){step();});
-  selectSrcCode.onClick.listen((Event e) {toggleSelectSrcCode();});
-  selectBtn.onClick.listen((Event e){selectClicked(e);});
+  stepBtn.value = "Start";
+  stepBtn.disabled = true;
+  selectBtn.onClick.listen((Event e){selectClicked();});
+  selectBtn.size = selectBtn.children.length;
   
 //  drawArrow(new Pos(), new Pos(), 7);
 }
 
-void selectClicked(Event e) {
+void selectClicked() {
   switch(selectBtn.value) {
     case "*upload*":
       query("#uploadFile").style.display = "block";
       query("#inputCode").style.display = "none";
-      selectBtn.size = 3;
+//      selectBtn.size = 3;
+      selectBtn.size = selectBtn.children.length;
       break;
     case "*input*":
       query("#uploadFile").style.display = "none";
       query("#inputCode").style.display = "block";
-      selectBtn.size = 3;
+//      selectBtn.size = 3;
+      selectBtn.size = selectBtn.children.length;
       break;
     case "":
       query("#uploadFile").style.display = "none";
@@ -63,23 +69,19 @@ void selectClicked(Event e) {
   }
 }
 
-void toggleSelectSrcCode() {
-  if(selectSrcCode.style.backgroundColor == "rgb(255, 0, 0)")
-    selectSrcCode.style.backgroundColor = "#fff0f0";
-  else
-    selectSrcCode.style.backgroundColor = "#ff0000";
-}
-
 void step(){
   if(!runner.isDone()){
+    stepBtn.value = "Step";
     runner.step();
     printEnv();
     query("#stack").text = runner.environment.toString();
     selectCurrent();
   }
 
-  if(runner.isDone())
+  if(runner.isDone()) {
     stepBtn.disabled = true;
+    stepBtn.value = "Start";
+  }
 }
 
 selectCurrent(){
@@ -117,8 +119,9 @@ postSourceToJsonService({String name, String source}){
         prog = (new Program(parse(req.responseText)));
         print("intializing runner");
         runner = new Runner(prog);
-        java.children[0] = Printer.toHtml(prog.compilationUnits.first);
+        javaSource.children[0] = Printer.toHtml(prog.compilationUnits.first);
         stepBtn.disabled = false;
+        stepBtn.value = "Start";
         environment.children.clear();
         printEnv();
         query("#stack").text = runner.environment.toString();
@@ -140,7 +143,10 @@ void printEnv(){
     TableCellElement val = new TableCellElement();
     row.children = [addr, val];
     
+    row.id = "mem$key";
+    addr.classes.add("memaddr");
     addr.text = "$key";
+    val.classes.add("memval");
     val.text = "${runner.environment.values[key]}";
     
     return row;

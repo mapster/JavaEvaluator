@@ -10,12 +10,13 @@
     <h1>JavaEvaluator</h1>
     <div id="container">
       <form>
-        <div id="srcselector">
-         <h2 id="selectSourceCode" onClick="toggleSelectSrcCode()">Select Source Code</h2>
+        <div class="srcselector component">
+         <p class="comphead"><span>Select Source Code</span></p>
+         <div class="compbody">
           <p>
             <select id="select" size="3"> 
-            <option value="*upload*" selected="true">* Upload a File *</option>
-            <option value="*input*">* Input Code *</option>
+            <option value="*upload*" selected="true">** Upload a File **</option>
+            <option value="*input*">** Input Code **</option>
             <option value="">-- or Select Example Below --</option>
             <option value="ArrayTest.java">ArrayTest.java</option>
             <option value="Mains.java">Mains.java</option>
@@ -25,10 +26,10 @@
             </select>
           </p>
           <p id="uploadFile">
-            <input id="file" type="file" />
+            <input id="file" type="file" /><br />
             <input id="bruk" type="button" value="Upload"/>
           </p>
-          <p id="inputCode">
+          <div id="inputCode">
         <textarea id="src" cols="40" rows="20">
 public class Test {
   public static void main() {
@@ -36,23 +37,39 @@ public class Test {
   }
 }
          </textarea>
-         </p>
+         <br /><input id="use" type="button" value="Use the Source!" />
+         </div>
+         </div>
         </div>
-        <br />
-        <input id="step" type="button" value="Step"/>
+        <div class="clear"></div>
+        <input id="step" type="button" value="Start"/>
       </form>
       <br/>
     </div>
-    <div id="lastvalue"></div>
-    <div id="java">
-      <div id="javasource"></div>
-      <div id="environment"></div>
+    <div class="lastvalue component">
+      <p class="comphead"><span>Last Value</span></p>
+      <div id="compbody"><div id="lastvalue"></div></div>
     </div>
-    <div id="stack"></div>
-    <table id="memory">
+    <div id="java">
+      <div class="javasource component">
+        <p class="comphead"><span>Source</span></p>
+        <div class="compbody"><div id="javasource"><div class="placeholder"></div></div></div>
+      </div>
+      <div class="environment component">
+        <p class="comphead"><span>Environment</span></p>
+        <div class="compbody"><div id="environment"></div></div>
+      </div>
+    </div>
+    <div class="stack component">
+      <p class="comphead"><span>Stack</span></p>
+      <div class="compbody"><div id="stack"></div></div>
+    </div>
+    <div class="memory component">
+      <p class="comphead"><span>Memory</span></p>
+    <div class="compbody"><table id="memory">
       <tr><td>Address</td><td>Value</td></tr>
-    </table>
-    
+    </table></div>
+    </div>
     <script type="application/dart" src="site.dart"></script>
     <script src="packages/browser/dart.js"></script>
   </body>

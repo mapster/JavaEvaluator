@@ -23,7 +23,6 @@ class Printer {
 
   static Element toHtml(ASTNode node){
     DivElement root = new DivElement();
-    root.attributes['id'] = "javasource";
     root.children.addAll(_toHtml(node, true));
     return root;
   } 
