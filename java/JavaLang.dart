@@ -88,7 +88,7 @@ class JDKString implements ClassInstance {
   void newVariable(Identifier name, [dynamic value]){
     if(name.name != "value")
       throw "Cannot declare field $name in object ${this.name}";
-    if(value == null)
+    if(value != null)
       throw "Cannot assign value to an immutable object ${this.name}";
   }
   

@@ -186,7 +186,7 @@ class Environment {
   
   void loadMethod(Identifier name, List args, {ClassScope inClass}) {
     ClassScope parent = methodStack.last.parentScope;
-    if(inClass == null)
+    if(inClass != null)
       parent = inClass;
     
     if(parent is JDKString){
