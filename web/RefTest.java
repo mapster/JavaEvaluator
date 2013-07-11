@@ -7,7 +7,8 @@ public class RefTest {
 
 	public static void main(String[] args) {
 		int x = 1;
-		int[] y = {1,2,3};
+		int[] y = new int[1];
+		y[0] = 1;
 		RefTest z = new RefTest(1);
 		foo(x);
 		bar(y);
