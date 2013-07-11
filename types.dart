@@ -32,8 +32,17 @@ class ReferenceValue extends Value<int> {
     else
       return "@$_value";
   }
+
+  String toAddr() {
+    if(_value == -1)
+      return "__undef";
+    else if(_value == -2)
+      return "__null";
+    else
+      return "__$_value";
+   }
   
-  int get hashCode => 37 + _value;
+   int get hashCode => 37 + _value;
 }
 
 

@@ -5,7 +5,7 @@ import 'dart:json';
 import 'dart:math';
 import '../Runner.dart';
 import '../ast.dart';
-
+import '../types.dart';
 part '../printer.dart';
 
 final int UIMODE_STARTING = 0;
@@ -231,16 +231,37 @@ void printEnv(){
     TableCellElement val = new TableCellElement();
     row.children = [addr, val];
     
-    row.id = "mem$key";
+    String addrTxt = key.toAddr();
+    row.id = "mem$addrTxt";
     addr.classes.add("memaddr");
+    addr.classes.add("memref$addrTxt");
     addr.text = "$key";
+    addr.onMouseOver.listen((Event e) {mark(".memref$addrTxt");});
+    addr.onMouseOut.listen((Event e) {unmark(".memref$addrTxt");});
     val.classes.add("memval");
-    val.text = "${runner.environment.values[key]}";
+    var v = runner.environment.values[key];
+    val.text = "$v";
+    if(v is ReferenceValue) {
+      val.classes.add("memref${v.toAddr()}");
+      addMouseOverMarking(val, "memref${v.toAddr()}");
+    }
     
     return row;
   }).toList();
 }
 
+void mark(String selector) {
+  queryAll(selector).classes.add("marked");
+}
+
+void unmark(String selector) {
+  queryAll(selector).classes.remove("marked");
+}
+
+void addMouseOverMarking(Element elt, String selector) {
+  elt.onMouseOver.listen((Event e) {mark(selector);});
+  elt.onMouseOut.listen((Event e) {unmark(selector);});
+}
 //void drawArrow(Pos p1, Pos p2, num width){
 //  DivElement arrow = new DivElement();
 //  arrow.attributes['class'] = "arrow";

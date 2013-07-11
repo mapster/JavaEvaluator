@@ -254,6 +254,18 @@ div.arrow {
   background-color: #f60;
 }
 
+.marked {
+  background-color: #ff8;
+}
+
+.varName {
+  font-family: monospace;
+}
+
+.varVal {
+  font-family: monospace;
+}
+
 .box {
   border-width: 2px;
   border-style: solid;

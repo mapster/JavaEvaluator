@@ -350,7 +350,19 @@ class Printer {
     root.children = variables.keys.map((id) {
       DivElement el = new DivElement();
       el.classes.add("assignment");
-      el.text = "$id: ${variables[id]}";
+      SpanElement varName = new SpanElement();
+      varName.text = id.toString();
+      varName.classes.add("varName");
+      SpanElement varVal = new SpanElement();
+      varVal.text = variables[id].toString();
+      varVal.classes.add("varVal");
+      if(variables[id] is ReferenceValue) {
+        varVal.classes.add("memref${variables[id].toAddr()}");
+        addMouseOverMarking(varVal, ".memref${variables[id].toAddr()}");
+      }
+      el.append(varName);
+      el.appendText("=");
+      el.append(varVal);
       return el;
     }).toList();
     return root;
