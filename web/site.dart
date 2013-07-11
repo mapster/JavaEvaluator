@@ -32,6 +32,7 @@ InputElement srcInput = query("#srcinput");
 ElementList components = queryAll(".component");
 Element srcSelector = query("#srcselector");
 ParagraphElement status = query("#status");
+ParagraphElement helpline = query("#helpline");
 
 void main() {
   InputElement bruk = query("#bruk");
@@ -236,31 +237,65 @@ void printEnv(){
     addr.classes.add("memaddr");
     addr.classes.add("memref$addrTxt");
     addr.text = "$key";
-    addr.onMouseOver.listen((Event e) {mark(".memref$addrTxt");});
-    addr.onMouseOut.listen((Event e) {unmark(".memref$addrTxt");});
+    addMouseOverMarkAll(addr, ".memref$addrTxt", "marked");
     val.classes.add("memval");
     var v = runner.environment.values[key];
     val.text = "$v";
     if(v is ReferenceValue) {
       val.classes.add("memref${v.toAddr()}");
-      addMouseOverMarking(val, "memref${v.toAddr()}");
+      addMouseOverMarkAll(val, ".memref${v.toAddr()}", "mark");
     }
     
     return row;
   }).toList();
 }
 
-void mark(String selector) {
-  queryAll(selector).classes.add("marked");
+void addMouseOverMark(Element elt, String mark) {
+  elt.onMouseOver.listen((Event e) {elt.classes.add(mark);});
+  elt.onMouseOut.listen((Event e) {elt.classes.remove(mark);});
 }
 
-void unmark(String selector) {
-  queryAll(selector).classes.remove("marked");
+void addMouseOverMarkAndHelp(Element elt, String mark, String help) {
+  elt.onMouseOver.listen((Event e) {
+    elt.classes.add(mark);
+    helpline.text = help;
+  });
+  elt.onMouseOut.listen((Event e) {
+    elt.classes.remove(mark);
+    helpline.text = "\u00a0";
+  });
 }
 
-void addMouseOverMarking(Element elt, String selector) {
-  elt.onMouseOver.listen((Event e) {mark(selector);});
-  elt.onMouseOut.listen((Event e) {unmark(selector);});
+void addMouseOverMarkAll(Element elt, String selector, String mark) {
+  elt.onMouseOver.listen((Event e) {queryAll(selector).classes.add(mark);});
+  elt.onMouseOut.listen((Event e) {queryAll(selector).classes.remove(mark);});
+}
+
+void addAssertClick(Element elt, int nodeid) {
+  elt.onClick.listen((Event e) {
+    for(Element e in queryAll(".popup"))
+      e.remove();
+    Element popup = new FormElement();
+    popup.classes.add("popup");
+    LabelElement label = new LabelElement();
+    label.text = "assert ";
+    label.classes.add("keyword");
+    label.attributes['for'] = "assertion"; 
+    popup.append(label);
+
+    InputElement input = new InputElement();
+    input.type = "text";
+    input.size = 10;
+    input.id = "assertion";
+    popup.append(input);
+
+    InputElement cancel = new InputElement();
+    cancel.type = "button";
+    cancel.value = "Cancel";
+    cancel.onClick.listen((Event e1) {print("Removing $popup"); popup.remove();});
+    popup.append(cancel);
+    elt.parent.append(popup);
+  });
 }
 //void drawArrow(Pos p1, Pos p2, num width){
 //  DivElement arrow = new DivElement();

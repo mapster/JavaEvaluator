@@ -4,8 +4,19 @@ class Printer {
 
   static Element _newElement({int nodeid, String text, bool newLine: false, bool keyword: false, bool indent: false, bool stringLiteral:false}){
     Element ele;
-    if(newLine || indent)
+    if(newLine || indent) {
       ele = new DivElement();
+      if(newLine) {
+        Element handle = new DivElement();
+        handle.classes.add("lineHandle");
+        if(?nodeid) {
+            handle.id = "line$nodeid";
+            addMouseOverMarkAndHelp(handle, "marked", "Click to add assertion after this line");
+            addAssertClick(handle, nodeid);
+        }
+        ele.append(handle);
+      }
+    }
     else 
       ele = new SpanElement();
     
@@ -358,7 +369,7 @@ class Printer {
       varVal.classes.add("varVal");
       if(variables[id] is ReferenceValue) {
         varVal.classes.add("memref${variables[id].toAddr()}");
-        addMouseOverMarking(varVal, ".memref${variables[id].toAddr()}");
+        addMouseOverMarkAll(varVal, ".memref${variables[id].toAddr()}", "marked");
       }
       el.append(varName);
       el.appendText("=");

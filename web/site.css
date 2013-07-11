@@ -282,3 +282,33 @@ div.arrow {
   font-style: italic;
   border-bottom: 1px solid #787;
 }
+
+.helpline {
+  margin: 0px;
+  background-color: #fee;
+  color: #000;
+  padding: 4px 6px 4px;
+  border-bottom: 1px solid #877;
+}
+
+.lineHandle {
+  display: inline-block;
+  width: 19px;
+  height: 19px;
+}
+
+.lineHandle.marked {
+  background-image: url(img/add-assert.png);
+  background-color: transparent;
+}
+
+.popup {
+  background-color: #fff;
+  z-index: 999;
+  padding: 3px;
+  -webkit-transition: opacity 1400ms ease-in;
+  -moz-transition: opacity 1400ms ease-in;
+  transition: opacity 1400ms ease-in;
+  margin-left: 19px;
+}
+
