@@ -303,9 +303,12 @@ div.arrow {
 }
 
 .popup {
-  background-color: #fff;
+  border: 0px solid #000;
+/*  border-top-width: 1px;
+  border-bottom-width: 1px;
   z-index: 999;
-  padding: 3px;
+  */
+  padding: 3px 0px;
   -webkit-transition: opacity 1400ms ease-in;
   -moz-transition: opacity 1400ms ease-in;
   transition: opacity 1400ms ease-in;

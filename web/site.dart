@@ -289,11 +289,19 @@ void addAssertClick(Element elt, int nodeid) {
     input.id = "assertion";
     popup.append(input);
 
+    InputElement add = new InputElement();
+    add.type = "button";
+    add.value = "Add";
+    add.onClick.listen((Event e1) {popup.remove();});
+    popup.append(add);
+
     InputElement cancel = new InputElement();
     cancel.type = "button";
     cancel.value = "Cancel";
-    cancel.onClick.listen((Event e1) {print("Removing $popup"); popup.remove();});
+    cancel.onClick.listen((Event e1) {popup.remove();});
     popup.append(cancel);
+    
+    popup.onSubmit.listen((Event e1) {popup.remove(); e1.preventDefault();});
     elt.parent.append(popup);
   });
 }
