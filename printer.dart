@@ -2,14 +2,14 @@ part of site;
 
 class Printer {
 
-  static Element _newElement({int nodeid, String text, bool newLine: false, bool keyword: false, bool indent: false, bool stringLiteral:false}){
+  static Element _newElement({int nodeid: -1, String text, bool newLine: false, bool keyword: false, bool indent: false, bool stringLiteral:false}){
     Element ele;
     if(newLine || indent) {
       ele = new DivElement();
       if(newLine) {
         Element handle = new DivElement();
         handle.classes.add("lineHandle");
-        if(?nodeid) {
+        if(nodeid > -1) {
             handle.id = "line$nodeid";
             addMouseOverMarkAndHelp(handle, "marked", "Click to add assertion after this line");
             addAssertClick(handle, nodeid);
@@ -21,12 +21,12 @@ class Printer {
       ele = new SpanElement();
     
     List classes = [];
-    if(?nodeid)   ele.attributes['id'] = "node$nodeid";
+    if(nodeid > -1)   ele.attributes['id'] = "node$nodeid";
     if(newLine)   classes.add("line");
     if(keyword)   classes.add("keyword");
     if(indent)    classes.add("indent");
     if(stringLiteral) classes.add("string_literal");
-    if(?text)     ele.innerHtml = text;
+    if(text == null)     ele.innerHtml = text;
     if(!classes.isEmpty) ele.attributes['class'] = classes.reduce((r, e) => r.isEmpty ? e : "$r $e");
     
     return ele;
