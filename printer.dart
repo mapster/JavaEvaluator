@@ -1,5 +1,9 @@
 part of site;
 
+final int KIND_VAR = 0;
+final int KIND_STATIC = 1;
+final int KIND_FIELD = 2;
+
 class Printer {
 
   static Element _newElement({int nodeid: -1, String text, bool newLine: false, bool keyword: false, bool indent: false, bool stringLiteral:false}){
@@ -337,25 +341,30 @@ class Printer {
     DivElement members = new DivElement();
     members.attributes['class'] = "members";
     members.children = pkg.getPackages.map((Package p) => packageToHtml(p, env)).toList();
-    members.children.addAll(pkg.getClasses.map((StaticClass c) => classToHtml(c, env)).toList());
+    members.children.addAll(pkg.getClasses.map((StaticClass c) => classToHtml(c, null, true, env)).toList());
 
     pkgRoot.children..add(name)..add(members);
     return pkgRoot;
   }
   
-  static classToHtml(ClassScope clazz, Environment env){
+  static classToHtml(ClassScope clazz, String methodName, bool isStatic, Environment env){
     DivElement root = new DivElement();
     root.classes.addAll(["box", "class"]);
     
     DivElement name = new DivElement();
     name.classes.add("name");
-    name.text = clazz.name.toString();
+    name.appendText(clazz.name.toString());
+    if(methodName != null) {
+      name.appendText(".");
+      name.appendText(methodName);
+      name.appendText("()");
+    }
     
-    root.children..add(name)..add(variableMapToHtml(clazz.variables));
+    root.children..add(name)..add(variableMapToHtml(clazz.variables, isStatic ? KIND_STATIC : KIND_FIELD));
     return root;
   }
   
-  static Element variableMapToHtml(Map<Identifier, dynamic> variables){
+  static Element variableMapToHtml(Map<Identifier, dynamic> variables, int kind){
     DivElement root = new DivElement();
     root.classes.add("variables");
     root.children = variables.keys.map((id) {
@@ -371,6 +380,18 @@ class Printer {
         varVal.classes.add("memref${variables[id].toAddr()}");
         addMouseOverMarkAll(varVal, ".memref${variables[id].toAddr()}", "marked");
       }
+      SpanElement kindEl = new SpanElement();
+      if(kind == KIND_STATIC) {
+        kindEl.text = "static ";
+      }
+      else if(kind == KIND_FIELD) {
+        kindEl.text = "field ";
+      }
+      else {
+        kindEl.text = "var ";
+      }
+      kindEl.classes.add("varKind");
+      el.append(kindEl);
       el.append(varName);
       el.appendText("=");
       el.append(varVal);
@@ -380,8 +401,8 @@ class Printer {
   }
   
   static currentScopeToHtml(Environment env){
-    DivElement clazz = classToHtml(env.methodStack.last.parentScope, env);
-     clazz.children.add(blockToHtml(env.methodStack.last, env));
+    DivElement clazz = classToHtml(env.methodStack.last.parentScope, env.methodStack.last.methodName, false, env);
+    clazz.children.add(blockToHtml(env.methodStack.last, env));
     return clazz;
   }
   
@@ -389,7 +410,7 @@ class Printer {
     DivElement root = new DivElement();
     root.classes.addAll(["box", "block"]);
     
-    root.children.add(variableMapToHtml(block.variables));
+    root.children.add(variableMapToHtml(block.variables, KIND_VAR));
     if(block.subScope != null)
       root.children.add(blockToHtml(block.subScope, env));
     

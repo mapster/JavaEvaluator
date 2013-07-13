@@ -62,7 +62,7 @@ class ClassLoader {
     imports.forEach((import) => clazz.addImport(import));
     
     //add class to evaluation stack, to evaluate initializers of static variables
-    MethodScope classInit = new MethodScope(initializers, clazz);
+    MethodScope classInit = new MethodScope("<static init>", initializers, clazz);
     environment.loadScope(classInit);
   }
   
