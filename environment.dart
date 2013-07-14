@@ -202,7 +202,7 @@ class Environment {
       MethodDecl method = parent.methods.singleWhere((MethodDecl m) 
           => m.name == name.name && _checkParamArgTypeMatch(m.type.parameters, args.map(typeOf).toList()));
       
-      print("loading method: ${method.type.returnType} ${method.name}");
+      print("loading method: void=${method.type.returnType.isVoid} ${method.name}");
       print("body: ${method.body}");
       
       methodStack.add(new MethodScope(name.toString(), method.body, parent));
@@ -211,7 +211,8 @@ class Environment {
         newVariable(new Identifier.fixed(method.parameters[i].name), args[i]);
       }
       
-      return method.type.returnType.isVoid;
+      
+      return ! method.type.returnType.isVoid;
     }
   }
   
