@@ -1,5 +1,9 @@
 part of JavaEvaluator;
 
+final int ASSERT_FAILED = -1;
+final int ASSERT_OK = 1;
+final int ASSERT_UNTESTED = 0;
+
 class Evaluator {
   final Environment environment;
   
@@ -28,6 +32,8 @@ class Evaluator {
       return _evalVariable(statement);
     else if(statement is MethodCall)
       return _evalMethodCall(statement);
+    else if(statement is Assert)
+      return _evalAssert(statement);
     else if(statement is Assignment)
       return _evalAssignment(statement);
     else if(statement is NewArray)
@@ -108,19 +114,20 @@ class Evaluator {
 
   _evalMethodCall(MethodCall call) {
     return new EvalTree(call, this, (List args){
-
       bool hasReturn = false;
       var toReturn = new EvalTree(call, this);
       if(call.select is MemberSelect){
-        var owner = eval(call.select.owner);
+        MemberSelect select = call.select;
+        var owner = eval(select);
         if(owner is ReferenceValue)
           owner = environment.values[owner];
-        hasReturn = environment.loadMethod(call.select.member_id, args, inClass:owner);
+        hasReturn = environment.loadMethod(select.member_id, args, inClass:owner);
       }
       else {
         hasReturn = environment.loadMethod(call.select, args);
       }
-      
+
+      print("toReturn: $toReturn, ${toReturn._method}");
       if(hasReturn){
         returnValues.add(toReturn);
         return toReturn;
@@ -183,6 +190,21 @@ class Evaluator {
           environment.addBlockScope(ifStat.elze);      
         }
       }, [ifStat.condition]).execute();
+  }
+  
+  _evalAssert(Assert asrt){
+    return new EvalTree(asrt, this, (List args){
+      print(args[0].runtimeType);
+      if(args[0] is! BooleanValue)
+        throw "Assert condition must evaluate to a Boolean value! (: ${args[0].runtimeType})";
+      if(args[0].value) {
+        setAssert(ASSERT_OK, asrt.nodeId);
+      }
+      else {
+        setAssert(ASSERT_FAILED, asrt.nodeId);
+      }
+      print("assert $asrt.nodeId $asrt => ${args[0].value}");      
+    }, [asrt.condition]).execute();
   }
   
   _evalAssignment(Assignment assign){

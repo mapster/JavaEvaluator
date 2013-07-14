@@ -7,11 +7,13 @@ public class RefTest {
 
 	public static void main(String[] args) {
 		int x = 1;
-		int[] y = {1,2,3};
+		int[] y = new int[1];
+		y[0] = 1;
 		RefTest z = new RefTest(1);
 		foo(x);
 		bar(y);
 		baz(z);
+		assert x == 1;
 		System.out.printf("%d, %d, %d\n", x, y[0], z.val);
 	}
 

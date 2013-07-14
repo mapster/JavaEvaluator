@@ -19,6 +19,9 @@ class Program {
     switch(json['NODE_TYPE']){
       case 'array_access':
         return new ArrayAccess.fromJson(json, parseObject(json['index']), parseObject(json['expr']));
+      case 'assert':
+        print("Assert: $json");
+        return parseAssert(json);
       case 'class':
         return parseClass(json);
       case 'compile_unit':
@@ -83,8 +86,10 @@ class Program {
 
   parseLiteral(json) =>  new Literal.fromJson(json);
 
+  parseAssert(Map json) => new Assert.fromJson(json, parseObject(json['condition']));
+  
   parseAssignment(Map json) => new Assignment.fromJson(json, parseObject(json['variable']), parseObject(json['expr']));
-
+  
   parseMethod(Map json) {
     MethodDecl method = new MethodDecl.fromJson(json, new TypeNode(parseObject(json['type'])), json['parameters'].map(parseObject).toList(), json['body']['statements'].map(parseObject).toList());
     return method;
@@ -159,6 +164,14 @@ class ArrayAccess extends ASTNode {
   final ASTNode expr;
   
   ArrayAccess.fromJson(Map json, this.index, this.expr) : super.fromJson(json);
+}
+
+class Assert extends ASTNode {
+  final condition;
+  
+  Assert.fromJson(Map json, this.condition) : super.fromJson(json);
+  
+  String toString() => "assert $condition";
 }
 
 class Assignment extends ASTNode {

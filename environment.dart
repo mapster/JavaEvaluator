@@ -142,7 +142,7 @@ class Environment {
       loadMethod(Identifier.CONSTRUCTOR, constructorArgs);
     }, []));
  
-    loadScope(new MethodScope(initializers, inst));
+    loadScope(new MethodScope("<new>", initializers, inst));
     
     return _newValue(inst);
   }
@@ -205,7 +205,7 @@ class Environment {
       print("loading method: ${method.type.returnType} ${method.name}");
       print("body: ${method.body}");
       
-      methodStack.add(new MethodScope(method.body, parent));
+      methodStack.add(new MethodScope(name.toString(), method.body, parent));
       
       for(int i = 0; i < method.parameters.length; i++){
         newVariable(new Identifier.fixed(method.parameters[i].name), args[i]);
@@ -364,8 +364,9 @@ class BlockScope extends Scope {
 
 class MethodScope extends BlockScope {
   final ClassScope parentScope;
+  String methodName;
   
-  MethodScope(List<dynamic> statements, ClassScope this.parentScope) : super(statements);
+  MethodScope(String name, List<dynamic> statements, ClassScope this.parentScope) : super(statements), methodName = name;
   
   StaticClass lookupClass(Identifier name) => parentScope.lookupClass(name);
   

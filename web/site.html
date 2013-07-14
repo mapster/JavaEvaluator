@@ -8,12 +8,12 @@
   </head>
   <body>
     <form id="container">
-      <p class="comphead"><span>JavaEvaluator</span></p>
+      <p class="comphead"><span>Javis</span></p>
       <div class="clear"></div>
       <p id="status" class="status">Loading evaluator, please wait...</p>
       <p id="helpline" class="helpline">&nbsp;</p>
       <div class="mainview">
-      <div class="javasource component">
+      <div class="javasource component disabled">
         <p class="comphead"><span>Source</span></p>
         <div class="compbody"><div id="javasource"><div class="placeholder"></div></div>
           <div id="inputcode" style="display: none">
@@ -24,33 +24,33 @@
           </div>
           </div>
       </div><!-- end javasource -->
-      <div class="output component">
+      <div class="output component disabled">
         <p class="comphead"><span>Output</span></p>
         <div class="compbody" id="output"><div class="placeholder"></div></div>
       </div>
       </div><!-- end mainview -->
       <div id="sideview1" class="sideview">
-      <div class="control component">
+      <div class="control component disabled">
         <p class="comphead"><span>Control</span></p>
         <div class="compbody">
       <input id="step" type="button" value="Start"/>
         </div>
       </div><!-- end lastvalue -->
-      <div class="lastvalue component">
+      <div class="lastvalue component disabled">
         <p class="comphead"><span>Last Value</span></p>
         <div class="compbody"><div id="lastvalue">&nbsp;</div></div>
       </div><!-- end lastvalue -->
-      <div class="environment component">
-        <p class="comphead"><span>Environment</span></p>
+      <div class="environment component disabled">
+        <p class="comphead"><span>Variables</span></p>
         <div class="compbody"><div id="environment"></div></div>
       </div><!-- end environment -->
-      <div class="stack component">
+      <div class="stack component disabled" style="display: none">
         <p class="comphead"><span>Stack</span></p>
         <div class="compbody"><div id="stack"></div></div>
       </div><!-- end stack -->
       </div><!-- end sideview -->
       <div id="sideview2" class="sideview">
-      <div id="srcselector" class="srcselector component">
+      <div id="srcselector" class="srcselector component disabled">
         <p class="comphead"><span>Select Source Code</span></p>
         <div class="compbody">
           <p>
@@ -58,6 +58,7 @@
               <option value="*upload*" selected="true">** Upload a File **</option>
               <option value="*input*">** Edit Code **</option>
               <option value="">-- or Select Example Below --</option>
+              <option value="Assert.java">Assert.java</option>
               <option value="ArrayTest.java">ArrayTest.java</option>
               <option value="Mains.java">Mains.java</option>
               <option value="MainTest.java">MainTest.java</option>
@@ -75,7 +76,7 @@
       </div><!-- end sideview -->
         <div class="clear"></div>
       <div class="bottomview">
-      <div class="memory component">
+      <div class="memory component disabled">
         <p class="comphead"><span>Memory</span></p>
         <div class="compbody"><table id="memory">
             <tr><td>Address</td><td>Value</td></tr>

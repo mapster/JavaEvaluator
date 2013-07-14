@@ -63,6 +63,7 @@ void changeUiMode(int newMode) {
       stepBtn.value = "Start";
       stepBtn.disabled = false;
       status.text = "Ready";
+      helpline.text = "Press ‘Start’ to start stepping";
     }
     else if(uiMode == UIMODE_EVAL_STARTED) {
       changeComponentMode(".control", "", ".component");
@@ -304,6 +305,27 @@ void addAssertClick(Element elt, int nodeid) {
     popup.onSubmit.listen((Event e1) {popup.remove(); e1.preventDefault();});
     elt.parent.append(popup);
   });
+}
+
+void setAssert(int state, int nodeid) {
+  Element elt = query("#assertId$nodeid");
+  if(elt != null) {
+    if(state == ASSERT_FAILED) {
+      elt.classes.remove("assert_untested");
+      elt.classes.remove("assert_ok");
+      elt.classes.add("assert_failed");
+    }
+    else if(state == ASSERT_OK) {
+      elt.classes.remove("assert_untested");
+      elt.classes.remove("assert_failed");
+      elt.classes.add("assert_ok");
+    }
+    else {
+      elt.classes.remove("assert_failed");
+      elt.classes.remove("assert_ok");
+      elt.classes.add("assert_untested");
+    }
+  }
 }
 //void drawArrow(Pos p1, Pos p2, num width){
 //  DivElement arrow = new DivElement();
