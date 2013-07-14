@@ -109,19 +109,23 @@ class Evaluator {
   _evalMethodCall(MethodCall call) {
     return new EvalTree(call, this, (List args){
 
-      
+      bool hasReturn = false;
       var toReturn = new EvalTree(call, this);
-      returnValues.add(toReturn);
       if(call.select is MemberSelect){
         var owner = eval(call.select.owner);
         if(owner is ReferenceValue)
           owner = environment.values[owner];
-        environment.loadMethod(call.select.member_id, args, inClass:owner);
+        hasReturn = environment.loadMethod(call.select.member_id, args, inClass:owner);
       }
       else {
-        environment.loadMethod(call.select, args);
+        hasReturn = environment.loadMethod(call.select, args);
       }
-      return toReturn;
+      
+      if(hasReturn){
+        returnValues.add(toReturn);
+        return toReturn;
+      }
+      else return null;
     }, new List.from(call.arguments)).execute();
   }
   

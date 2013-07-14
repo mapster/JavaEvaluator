@@ -442,6 +442,7 @@ class TypeNode extends ASTNode {
   bool get isPrimitive => type is String;
   bool get isArray => type is TypeNode;
   bool get isDeclared => type is Identifier;
+  bool get isVoid => type == VOID;
   
   static const TypeNode VOID = const TypeNode.fixed("VOID");
   static const TypeNode STRING = const TypeNode.fixed(const Identifier.fixed("String"));

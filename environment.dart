@@ -184,7 +184,13 @@ class Environment {
     return methodStack.last.topStatement();
   }
   
-  void loadMethod(Identifier name, List args, {ClassScope inClass}) {
+  /**
+   * Returns true if it has a return value, 
+   * TODO should probably return something more
+   * fitting like the toReturn EvalTree maybe.
+   * TODO fix return type of loadMethod
+   */
+  dynamic loadMethod(Identifier name, List args, {ClassScope inClass}) {
     ClassScope parent = methodStack.last.parentScope;
     if(inClass != null)
       parent = inClass;
@@ -196,7 +202,7 @@ class Environment {
       MethodDecl method = parent.methods.singleWhere((MethodDecl m) 
           => m.name == name.name && _checkParamArgTypeMatch(m.type.parameters, args.map(typeOf).toList()));
       
-      print("loading method: ${method.name}");
+      print("loading method: ${method.type.returnType} ${method.name}");
       print("body: ${method.body}");
       
       methodStack.add(new MethodScope(method.body, parent));
@@ -204,7 +210,8 @@ class Environment {
       for(int i = 0; i < method.parameters.length; i++){
         newVariable(new Identifier.fixed(method.parameters[i].name), args[i]);
       }
-
+      
+      return method.type.returnType.isVoid;
     }
   }
   
