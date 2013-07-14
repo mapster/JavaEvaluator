@@ -63,6 +63,7 @@ void changeUiMode(int newMode) {
       stepBtn.value = "Start";
       stepBtn.disabled = false;
       status.text = "Ready";
+      helpline.text = "Press ‘Start’ to start stepping";
     }
     else if(uiMode == UIMODE_EVAL_STARTED) {
       changeComponentMode(".control", "", ".component");

@@ -30,7 +30,7 @@ class Printer {
     if(keyword)   classes.add("keyword");
     if(indent)    classes.add("indent");
     if(stringLiteral) classes.add("string_literal");
-    if(text != null)     ele.innerHtml = text;
+    if(text != null)     ele.appendText(text);
     if(!classes.isEmpty) ele.attributes['class'] = classes.reduce((r, e) => r.isEmpty ? e : "$r $e");
     
     return ele;
