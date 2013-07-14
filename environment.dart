@@ -367,7 +367,7 @@ class MethodScope extends BlockScope {
   final ClassScope parentScope;
   String methodName;
   
-  MethodScope(String name, List<dynamic> statements, ClassScope this.parentScope) : super(statements), methodName = name;
+  MethodScope(this.methodName, List<dynamic> statements, ClassScope this.parentScope) : super(statements);
   
   StaticClass lookupClass(Identifier name) => parentScope.lookupClass(name);
   
