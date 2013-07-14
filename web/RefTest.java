@@ -13,6 +13,7 @@ public class RefTest {
 		foo(x);
 		bar(y);
 		baz(z);
+		assert x == 1;
 		System.out.printf("%d, %d, %d\n", x, y[0], z.val);
 	}
 

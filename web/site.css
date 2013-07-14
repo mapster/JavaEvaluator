@@ -320,3 +320,17 @@ div.arrow {
   margin-left: 19px;
 }
 
+.assert {
+}
+
+.assert_untested {
+  color: #a80;
+}
+
+.assert_ok {
+  color: #0e0;
+}
+
+.assert_failed {
+  color: #e00;
+}

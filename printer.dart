@@ -46,6 +46,9 @@ class Printer {
     if(astNode is ArrayAccess){
       return _arrayAccessToHtml(astNode, newLine);
     }
+    else if(astNode is Assert){
+      return _assertToHtml(astNode, newLine);
+    }
     else if(astNode is Assignment){
       return _assignmentToHtml(astNode, newLine);
     }
@@ -100,6 +103,18 @@ class Printer {
     element.children.add(_newElement(text:"["));
     element.children.addAll(_toHtml(node.index, false));
     element.children.add(_newElement(text:"]"));
+    return [element];
+  }
+
+  static List<Element> _assertToHtml(Assert node, bool newLine) {
+    Element element = _newElement(newLine:newLine, nodeid:node.nodeId);
+    Element kw = _newElement(text:"assert ", keyword: true);
+    kw.id = "assertId${node.nodeId}";
+    kw.classes.add("assert");
+    kw.classes.add("assert_untested");
+    element.children.add(kw);
+    element.children.addAll(_toHtml(node.condition, false));
+    if(newLine) element.children.add(_newElement(text:";"));
     return [element];
   }
 
